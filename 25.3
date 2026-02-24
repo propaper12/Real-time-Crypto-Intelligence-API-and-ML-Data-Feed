@@ -50,3 +50,18 @@ ORDER BY processed_time DESC
 LIMIT 100;
 
 ıot veri akısı:docker exec -it spark-silver python test_generic.py
+. TABLOYU MANUEL KUR (BUNU UNUTMA! ⚠️):
+Veritabanı sıfırlandığı için, tabloyu o yeni bilgisayarda da elle kurman gerekecek. Sistem ayağa kalktıktan 10-15 saniye sonra terminale şunu yazacaksın:
+
+Bash
+docker exec -it postgres psql -U admin_lakehouse -d market_db
+(İçeri girip şu kodu yapıştıracak ve \q ile çıkacaksın:)
+
+SQL
+CREATE TABLE IF NOT EXISTS market_data (
+    symbol VARCHAR(20),
+    average_price DOUBLE PRECISION,
+    predicted_price DOUBLE PRECISION,
+    volatility DOUBLE PRECISION,
+    processed_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
