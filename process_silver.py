@@ -10,28 +10,32 @@ from pyspark.sql import DataFrame
 
 # LOGLARDA GÖRÜNMESİ İÇİN 
 print("\n" + "="*50)
-print(" V5.0 GÜNCELLEME: VECTOR FIX (7-DIMENSION) AKTİF")
+print(" V5.0 GÜNCELLEME: VECTOR FIX (7-DIMENSION) & SECURE DB AKTİF")
 print("="*50 + "\n")
 
 time.sleep(5)
 
-# process_silver.py - (En üstteki ayar kısmını şu şekilde güncelle)
+# --- ÇEVRE DEĞİŞKENLERİ (ENVIRONMENT VARIABLES) ---
 KAFKA_BOOTSTRAP_SERVERS = os.getenv('KAFKA_BOOTSTRAP_SERVERS', 'kafka:9092')
 MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT", "http://minio:9000")
-ACCESS_KEY = os.getenv("MINIO_ROOT_USER")
-SECRET_KEY = os.getenv("MINIO_ROOT_PASSWORD")
+ACCESS_KEY = os.getenv("MINIO_ROOT_USER", "admin")
+SECRET_KEY = os.getenv("MINIO_ROOT_PASSWORD", "admin12345")
 BASE_MODEL_PATH = "s3a://market-data/models/"
 
-# Postgres ayarlarını dinamik yapıyoruz
+# --- POSTGRESQL BAĞLANTISI (KESİN VE TEK TANIM) ---
+PG_USER = os.getenv("POSTGRES_USER", "admin_lakehouse")
+PG_PASS = os.getenv("POSTGRES_PASSWORD", "SuperSecret_DB_Password_2026")
 PG_HOST = os.getenv("POSTGRES_HOST", "postgres")
 PG_DB = os.getenv("POSTGRES_DB", "market_db")
+
 PG_URL = f"jdbc:postgresql://{PG_HOST}:5432/{PG_DB}"
 PG_PROPERTIES = {
-    "user": os.getenv("POSTGRES_USER"), 
-    "password": os.getenv("POSTGRES_PASSWORD"), 
+    "user": PG_USER, 
+    "password": PG_PASS, 
     "driver": "org.postgresql.Driver"
 }
-# JAR Ayarları
+
+# --- JAR AYARLARI ---
 jar_dir = "/opt/spark-jars"
 jar_list = [
     f"{jar_dir}/delta-core_2.12-2.4.0.jar",
@@ -46,6 +50,7 @@ jar_list = [
 ]
 jar_conf = ",".join(jar_list)
 
+# --- SPARK SESSION ---
 spark = SparkSession.builder \
     .appName("UniversalSilverProcessor") \
     .config("spark.jars", jar_conf) \
@@ -65,9 +70,6 @@ spark = SparkSession.builder \
 
 spark.sparkContext.setLogLevel("ERROR")
 
-PG_URL = "jdbc:postgresql://postgres:5432/market_db"
-PG_PROPERTIES = {"user": "admin", "password": "admin", "driver": "org.postgresql.Driver"}
-
 model_cache = {}
 
 def get_model_for_symbol(symbol):
@@ -75,7 +77,6 @@ def get_model_for_symbol(symbol):
         return model_cache[symbol]
     
     path = f"{BASE_MODEL_PATH}{symbol}_model"
-    # Tüm olası model tiplerini deniyoruz
     loaders = [RandomForestRegressionModel, LinearRegressionModel, GBTRegressionModel, DecisionTreeRegressionModel]
     
     for loader in loaders:
@@ -109,7 +110,7 @@ normalized_df = json_df.select(
     current_timestamp().alias("timestamp")
 )
 
-# Window Aggregation (Temel veriler)
+# Window Aggregation
 windowed_df = normalized_df \
     .withWatermark("timestamp", "1 minute") \
     .groupBy(window(col("timestamp"), "30 seconds", "10 seconds"), col("symbol")) \
@@ -132,10 +133,6 @@ def process_batch_with_ai(batch_df, batch_id):
             sym_df = batch_df.filter(col("symbol") == sym)
             model = get_model_for_symbol(sym)
             
-            #  Feature Vector Hazırlığı
-            # Model 7 özellik bekliyor: ["volatility", "lag_1", "lag_3", "ma_5", "ma_10", "momentum", "volatility_change"]
-            # Streaming'de 'lag' olmadığı için mevcut fiyatı baz alarak dolduruyoruz.
-            
             prep_df = sym_df \
                 .withColumn("lag_1", col("average_price")) \
                 .withColumn("lag_3", col("average_price")) \
@@ -144,17 +141,11 @@ def process_batch_with_ai(batch_df, batch_id):
                 .withColumn("momentum", lit(0.0)) \
                 .withColumn("volatility_change", lit(0.0))
 
-            # Modelin beklediği sütun sırası
             input_cols = ["volatility", "lag_1", "lag_3", "ma_5", "ma_10", "momentum", "volatility_change"]
-            
-            # Vektör birleştirici
             assembler = VectorAssembler(inputCols=input_cols, outputCol="features_raw")
             
             try:
                 vec_df = assembler.transform(prep_df)
-                
-                # Model features adında bir kolon bekler.
-                # Eğer modelin içinde Scaler yoksa, raw featuresı direkt features yapıyoruz.
                 final_input_df = vec_df.withColumnRenamed("features_raw", "features")
                 
                 if model:
@@ -175,16 +166,16 @@ def process_batch_with_ai(batch_df, batch_id):
         if final_dfs:
             full_result = reduce(DataFrame.union, final_dfs)
             
-            # Delta Lake'e yaz
+            # 1. Delta Lake'e yaz (MinIO S3)
             full_result.write.format("delta").mode("append").partitionBy("symbol").save("s3a://market-data/silver_layer_delta")
             
-            # Postgres'e yazıyoruz (Dashboard için)
+            # 2. Postgres'e yaz (Streamlit Dashboard için)
             try:
                 pg_df = full_result.select("symbol", "volatility", "average_price", "processed_time", "predicted_price")
                 pg_df.write.jdbc(url=PG_URL, table="market_data", mode="append", properties=PG_PROPERTIES)
-                print(f" Batch {batch_id} Başarıyla İşlendi.")
+                print(f"✅ Batch {batch_id} Postgres'e ve Delta'ya Başarıyla Yazıldı.")
             except Exception as e:
-                print(f" DB Yazma Hatası: {e}")
+                print(f"❌ DB Yazma Hatası: {e}")
 
     except Exception as e:
         print(f" Batch İşleme Hatası: {e}")
