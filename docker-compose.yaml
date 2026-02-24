@@ -13,7 +13,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512m
+          memory: 384m
 
   # 2. KAFKA
   kafka:
@@ -31,7 +31,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 1g
+          memory: 768m
     volumes:
       - kafka_data:/bitnami/kafka      
 
@@ -41,7 +41,7 @@ services:
     container_name: minio
     ports: ["9000:9000", "9001:9001"]
     env_file: 
-      - .env # Şifreleri otomatik çeker
+      - .env
     command: server /data --console-address ":9001"
     volumes:
       - ./minio_data:/data
@@ -49,7 +49,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 1g
+          memory: 512m
 
   # 4. PRODUCER (BINANCE DATA)
   producer:
@@ -64,7 +64,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512m
+          memory: 256m
 
   # 5. SPARK CONSUMER (BRONZE LAYER)
   spark-consumer:
@@ -76,15 +76,15 @@ services:
     env_file: 
       - .env
     environment:
-      - SPARK_DRIVER_MEMORY=1g
-      - SPARK_EXECUTOR_MEMORY=1g
+      - SPARK_DRIVER_MEMORY=512m
+      - SPARK_EXECUTOR_MEMORY=512m
     volumes:
       - ./checkpoints:/app/checkpoints
     networks: [data-network]
     deploy:
       resources:
         limits:
-          memory: 2g
+          memory: 1g
 
   # 6. SPARK SILVER (PROCESSING LAYER)
   spark-silver:
@@ -96,8 +96,8 @@ services:
       - .env
     environment:
       - SPARK_MASTER=local[*]
-      - SPARK_DRIVER_MEMORY=1500m
-      - SPARK_EXECUTOR_MEMORY=1500m
+      - SPARK_DRIVER_MEMORY=1g
+      - SPARK_EXECUTOR_MEMORY=1g
     command: python process_silver.py
     volumes:
       - ./checkpoints_silver:/app/checkpoints_silver
@@ -106,8 +106,8 @@ services:
     deploy:
       resources:
         limits:
-          memory: 3g
-          cpus: '2.0'
+          memory: 2g
+          cpus: '1.5'
 
   # 7. ML TRAINER (AUTO-ML ORCHESTRATOR)
   ml-trainer:
@@ -122,6 +122,10 @@ services:
       - ./:/app
       - ./models:/app/models
     networks: [data-network]
+    deploy:
+      resources:
+        limits:
+          memory: 1g
 
   # 8. DASHBOARD (STREAMLIT UI)
   dashboard:
@@ -142,7 +146,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 1g
+          memory: 512m
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./dashboard_app:/app/dashboard_app
@@ -158,7 +162,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 1g
+          memory: 512m
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
@@ -179,7 +183,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512m
+          memory: 256m
 
   # 11. API GATEWAY
   api-gateway:
@@ -211,6 +215,10 @@ services:
       - /dev/disk/:/dev/disk:ro
     networks:
       - data-network
+    deploy:
+      resources:
+        limits:
+          memory: 256m
 
   # 13. PROMETHEUS
   prometheus:
@@ -226,6 +234,10 @@ services:
       - cadvisor
     networks:
       - data-network
+    deploy:
+      resources:
+        limits:
+          memory: 512m
 
   # 14. GRAFANA
   grafana:
@@ -241,6 +253,10 @@ services:
       - data-network
     volumes:
       - grafana_data:/var/lib/grafana
+    deploy:
+      resources:
+        limits:
+          memory: 256m
   
   # 15. MLFLOW SERVER
   mlflow:
@@ -259,6 +275,10 @@ services:
       - data-network
     depends_on:
       - minio
+    deploy:
+      resources:
+        limits:
+          memory: 512m
 
   # 16. METABASE
   metabase:
@@ -271,6 +291,10 @@ services:
     networks:
       - data-network
     restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 1g
   
   # 17. KAFKA CONNECT
   kafka-connect:
@@ -303,9 +327,13 @@ services:
       CONNECT_LOG4J_ROOT_LOGLEVEL: "INFO"
       CONNECT_KEY_CONVERTER_SCHEMAS_ENABLE: "false"
       CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
-      KAFKA_HEAP_OPTS: "-Xms512M -Xmx1G"
+      KAFKA_HEAP_OPTS: "-Xms256M -Xmx512M"
     networks:
       - data-network
+    deploy:
+      resources:
+        limits:
+          memory: 1g
    
   # 18. KAFKA CONNECT UI
   kafka-connect-ui:
@@ -320,6 +348,10 @@ services:
       - kafka-connect
     networks:
       - data-network
+    deploy:
+      resources:
+        limits:
+          memory: 128m
 
   # 19. KAFDROP (Kafka UI)
   kafdrop:
@@ -330,12 +362,44 @@ services:
       - "9010:9000"
     environment:
       KAFKA_BROKERCONNECT: "kafka:9092"
-      JVM_OPTS: "-Xms32M -Xmx64M"
+      JVM_OPTS: "-Xms32M -Xmx128M"
       SERVER_SERVLET_CONTEXT_PATH: "/"
     depends_on:
       - kafka
     networks:
       - data-network
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+
+  # 20. OTOMATİK VERİTABANI KURUCU (DB-INIT)
+  db-init:
+    image: postgres:15
+    container_name: db_init
+    depends_on:
+      - postgres
+    networks:
+      - data-network
+    environment:
+      PGPASSWORD: "SuperSecret_DB_Password_2026"
+    command: >
+      sh -c "
+      echo 'Postgres bekleniyor...';
+      sleep 10;
+      psql -h postgres -U admin_lakehouse -d market_db -c '
+      CREATE TABLE IF NOT EXISTS market_data (
+          symbol VARCHAR(20),
+          average_price DOUBLE PRECISION,
+          predicted_price DOUBLE PRECISION,
+          volatility DOUBLE PRECISION,
+          processed_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );' && echo 'Tablo basariyla kuruldu!';
+      "
+    deploy:
+      resources:
+        limits:
+          memory: 128m
 
 networks:
   data-network:
