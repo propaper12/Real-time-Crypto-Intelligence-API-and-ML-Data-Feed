@@ -69,11 +69,12 @@ def on_open(ws):
 
 if __name__ == "__main__":
     # Sadece BTCUSDT
-    socket_url = "wss://stream.binance.com:9443/ws/btcusdt@trade"
+    socket_url = "wss://stream.binance.com/ws/btcusdt@trade"
 
     while True:
         ws = websocket.WebSocketApp(
             socket_url,
+
             on_open=on_open,
             on_message=on_message,
             on_error=on_error,
