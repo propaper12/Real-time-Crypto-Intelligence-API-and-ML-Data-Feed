@@ -32,8 +32,8 @@ Geleneksel veri projelerinin aksine statik bir yapıya sahip değildir. Sistem; 
 -   **🧠 Otonom Yapay Zeka (Self-Training ML):** Sistemin başında bir veri bilimcinin durmasına gerek yoktur. "ML Watcher" modülü veri havuzunun doluluğunu izler, yeterli veriye ulaşıldığında Apache Spark MLlib üzerindeki 4 farklı algoritmayı (RandomForest, ElasticNet, DecisionTree, GBT) birbirleriyle yarıştırır ve en başarılı (Şampiyon) modeli otomatik olarak canlıya alır.
     
 -   **🐳 %100 İzole ve Ölçeklenebilir Mimari:** Sistem, birbirine tam entegre çalışan tam **17 farklı mikroservisten** oluşmaktadır. Tüm ortam Dockerize edilmiş olup tek bir komutla (`docker-compose up`) herhangi bir işletim sisteminde ayağa kalkabilir.
+<img width="2816" height="1504" alt="Gemini_Generated_Image_hn82lvhn82lvhn82" src="https://github.com/user-attachments/assets/3e4de52a-f56d-4885-b7f2-d8e7ee86cb03" />
 
-<img width="2816" height="1536" alt="Architecture" src="https://github.com/user-attachments/assets/0d3cabf3-f35d-4d77-ad85-a01477a16265" />
 
 ---
 
