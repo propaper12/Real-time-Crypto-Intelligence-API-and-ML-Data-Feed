@@ -8,10 +8,15 @@ RUN pip install --no-cache-dir \
     uvicorn \
     kafka-python \
     requests \
-    python-dotenv
+    python-dotenv \
+    pandas \
+    scikit-learn \
+    mlflow \
+    boto3
 
 # API Dosyaları
 COPY ingestion_api.py .
 COPY fake_company.py .
+COPY inference_api.py .
 
 CMD ["uvicorn", "ingestion_api:app", "--host", "0.0.0.0", "--port", "8000"]

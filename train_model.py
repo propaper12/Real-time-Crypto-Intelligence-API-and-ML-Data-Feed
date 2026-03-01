@@ -1,199 +1,186 @@
 import os
-import gc
+#MLflow'un o sorun çıkaran yeni metadata özelliğini kapatır.
+os.environ["MLFLOW_DISABLE_LOGGED_MODELS"] = "true"
 import sys
-import mlflow
-import mlflow.spark
+from time import time
 import numpy as np
-from pyspark.sql import SparkSession, Window
-from pyspark.ml.feature import VectorAssembler, StandardScaler
-from pyspark.ml.regression import (LinearRegression, DecisionTreeRegressor,
-                                   RandomForestRegressor, GBTRegressor)
-from pyspark.sql.functions import col, lag, avg, row_number, when, isnan, count, lit
-from pyspark.ml.evaluation import RegressionEvaluator
-from pyspark.ml import Pipeline
+import pandas as pd
+import mlflow
+import mlflow.sklearn
+from deltalake import DeltaTable
+from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
+from sklearn.metrics import mean_squared_error, r2_score
+from mlflow.tracking import MlflowClient
 
+
+
+# --- 1. AYARLAR VE KİMLİK BİLGİLERİ ---
 MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT", "http://minio:9000")
 MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", "http://mlflow_server:5000")
-DATA_PATH = "s3a://market-data/silver_layer_delta"
-MODELS_PATH = "s3a://market-data/models"
+DATA_PATH = "s3://market-data/silver_layer_delta" # s3a değil, s3 kullanıyoruz (Rust tabanlı deltalake için)
+
+# Deltalake (Rust) kütüphanesi için MinIO bağlantı ayarları
+storage_options = {
+    "AWS_ACCESS_KEY_ID": os.getenv("MINIO_ROOT_USER", "admin"),
+    "AWS_SECRET_ACCESS_KEY": os.getenv("MINIO_ROOT_PASSWORD", "admin12345"),
+    "AWS_ENDPOINT_URL": MINIO_ENDPOINT,
+    "AWS_REGION": "us-east-1",
+    "AWS_S3_ALLOW_UNSAFE_RENAME": "true",
+    "AWS_ALLOW_HTTP": "true"
+}
 
 os.environ["MLFLOW_S3_ENDPOINT_URL"] = MINIO_ENDPOINT
-os.environ["AWS_ACCESS_KEY_ID"] = "admin"
-os.environ["AWS_SECRET_ACCESS_KEY"] = "admin12345"
+os.environ["AWS_ACCESS_KEY_ID"] = storage_options["AWS_ACCESS_KEY_ID"]
+os.environ["AWS_SECRET_ACCESS_KEY"] = storage_options["AWS_SECRET_ACCESS_KEY"]
 
-print(" Enterprise AutoML Engine Başlatılıyor (Feature Engineering + TimeSeries Split)...")
+print("🚀 Enterprise Python AutoML Engine Başlatılıyor (No Spark, No JVM)...")
 
 mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
 mlflow.set_experiment("RealTime_AutoML_League")
 
-spark = SparkSession.builder \
-    .appName("AutoML_Pro_Engine") \
-    .config("spark.jars.packages",
-            "org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.1,"
-            "org.apache.hadoop:hadoop-aws:3.3.4,"
-            "com.amazonaws:aws-java-sdk-bundle:1.12.500,"
-            "io.delta:delta-core_2.12:2.4.0,"
-            "org.mlflow:mlflow-spark:1.27.0") \
-    .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension") \
-    .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog") \
-    .config("spark.hadoop.fs.s3a.endpoint", MINIO_ENDPOINT) \
-    .config("spark.hadoop.fs.s3a.access.key", os.getenv("MINIO_ROOT_USER")) \
-    .config("spark.hadoop.fs.s3a.secret.key", os.getenv("MINIO_ROOT_PASSWORD")) \
-    .config("spark.hadoop.fs.s3a.path.style.access", "true") \
-    .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem") \
-    .config("spark.hadoop.fs.s3a.connection.ssl.enabled", "false") \
-    .config("spark.sql.shuffle.partitions", "5") \
-    .master("local[*]") \
-    .getOrCreate()
-
-spark.sparkContext.setLogLevel("ERROR")
-
+# --- 2. ÖZELLİK MÜHENDİSLİĞİ (PANDAS İLE IŞIK HIZINDA) ---
 def create_smart_features(df):
     """
-    Ham veriden teknik analiz göstergeleri türetir.
-    Sadece 'fiyat' değil, 'fiyatın hızı' ve 'yönü'nü de modele öğretir.
+    Pandas kullanarak zaman serisi özelliklerini (Features) üretir.
+    En Önemlisi: Hedef değişkeni (Target) 1 adım İLERİ kaydırır (Shift -1).
     """
-    w = Window.partitionBy("symbol").orderBy("processed_time")
+    # Veriyi zaman damgasına göre kesinlikle sıralamalıyız
+    df = df.sort_values(by="processed_time").reset_index(drop=True)
     
-    df = df.withColumn("lag_1", lag("average_price", 1).over(w)) \
-           .withColumn("lag_3", lag("average_price", 3).over(w))
+    # Gecikmeler (Lags)
+    df['lag_1'] = df['average_price'].shift(1)
+    df['lag_3'] = df['average_price'].shift(3)
     
-    df = df.withColumn("ma_5", avg("average_price").over(w.rowsBetween(-5, 0))) \
-           .withColumn("ma_10", avg("average_price").over(w.rowsBetween(-10, 0)))
+    # Hareketli Ortalamalar (Moving Averages)
+    df['ma_5'] = df['average_price'].rolling(window=5).mean()
+    df['ma_10'] = df['average_price'].rolling(window=10).mean()
     
-    df = df.withColumn("momentum", col("average_price") - col("lag_3"))
+    # Momentum ve Volatilite Değişimi
+    df['momentum'] = df['average_price'] - df['lag_3']
+    df['volatility_change'] = df['volatility'] - df['volatility'].shift(1)
     
-    df = df.withColumn("volatility_change", col("volatility") - lag("volatility", 1).over(w))
-
+    # 🎯 SENIOR DOKUNUŞU: GELECEĞİ TAHMİN ETMEK (TARGET)
+    # Modelin 'şu an'ki verilere bakarak 'bir sonraki' fiyatı bulmasını istiyoruz.
+    df['TARGET_PRICE'] = df['average_price'].shift(-1)
+    
+    # NaN değerleri temizle (Shift ve Rolling işlemlerinden dolayı oluşur)
     df = df.dropna()
     return df
 
-def get_candidate_models():
-    return [
-        (LinearRegression(featuresCol="features", labelCol="label", maxIter=20, regParam=0.1, elasticNetParam=0.8), "ElasticNet_Reg"),
-        (DecisionTreeRegressor(featuresCol="features", labelCol="label", maxDepth=8), "DecisionTree_Mid"),
-        (RandomForestRegressor(featuresCol="features", labelCol="label", numTrees=20, maxDepth=10), "RandomForest_Pro"),
-        (GBTRegressor(featuresCol="features", labelCol="label", maxIter=15, maxDepth=5), "GradientBoosted_X")
-    ]
-
+# --- 3. VERİ YÜKLEME VE EĞİTİM ---
 try:
-    print(f" Veri Havuzu Taranıyor: {DATA_PATH}")
-    try:
-        base_df = spark.read.format("delta").load(DATA_PATH)
-    except:
-        base_df = spark.read.format("parquet").load(DATA_PATH)
-
-  
-    target_arg = sys.argv[1] if len(sys.argv) > 1 else "ALL"
+    print(f"📂 Veri Havuzu Taranıyor: {DATA_PATH}")
+    # Spark ayağa kaldırmadan, Rust gücüyle Delta Lake okuma (Çok Hızlı)
+    dt = DeltaTable(DATA_PATH, storage_options=storage_options)
+    base_df = dt.to_pandas()
     
-    target_symbols = []
+    # Hedef semboller (Sadece verisi 20'den büyük olanlar)
+    symbol_counts = base_df['symbol'].value_counts()
+    target_symbols = symbol_counts[symbol_counts > 20].index.tolist()
     
-    if target_arg != "ALL" and target_arg != "None":
-        print(f"Hedef Odaklı Eğitim Modu: Sadece {target_arg} için çalışılacak.")
-        count = base_df.filter(col("symbol") == target_arg).count()
-        if count > 10:
-            target_symbols = [target_arg]
-        else:
-            print(f" Uyarı: {target_arg} için yeterli veri yok ({count} satır).")
-    else:
-        print(" Genel Tarama Modu: Yeterli verisi olan tüm semboller taranıyor.")
-        symbol_counts = base_df.groupBy("symbol").count().filter("count > 20").collect()
-        target_symbols = [row.symbol for row in symbol_counts]
-
     if not target_symbols:
-        print(" İşlenecek uygun sembol bulunamadı. Veri akışını bekleyin.")
-        spark.stop()
+        print("⚠️ İşlenecek uygun sembol bulunamadı. Veri akışını bekleyin.")
         sys.exit(0)
-
-    for symbol in target_symbols:
-        print(f"\n ANALİZ BAŞLIYOR: {symbol}")
         
-        raw_df = base_df.filter(col("symbol") == symbol)
+    for symbol in target_symbols:
+        print(f"\n📊 ANALİZ BAŞLIYOR: {symbol}")
+        
+        # Filtrele ve Özellikleri Çıkar
+        raw_df = base_df[base_df['symbol'] == symbol].copy()
         feature_df = create_smart_features(raw_df)
         
-        input_cols = ["volatility", "lag_1", "lag_3", "ma_5", "ma_10", "momentum", "volatility_change"]
+        # Modelin eğitileceği kolonlar (Features)
+        feature_cols = ["volatility", "lag_1", "lag_3", "ma_5", "ma_10", "momentum", "volatility_change"]
         
-        assembler = VectorAssembler(inputCols=input_cols, outputCol="features") 
-        pipeline_prep = Pipeline(stages=[assembler]) # Sadece assembler var
-        model_prep = pipeline_prep.fit(feature_df)
-        final_data = model_prep.transform(feature_df).select("features", col("average_price").alias("label"), "processed_time")
-
-        total_rows = final_data.count()
-        split_index = int(total_rows * 0.8) 
+        X = feature_df[feature_cols]
+        y = feature_df["TARGET_PRICE"]
         
-        w_split = Window.orderBy("processed_time")
-        final_data_ranked = final_data.withColumn("rank", row_number().over(w_split))
+        # Zaman Serisi Ayrımı (Time-Series Split: %80 Train, %20 Test)
+        split_idx = int(len(feature_df) * 0.8)
+        X_train, X_test = X.iloc[:split_idx], X.iloc[split_idx:]
+        y_train, y_test = y.iloc[:split_idx], y.iloc[split_idx:]
         
-        train_data = final_data_ranked.filter(col("rank") <= split_index).drop("rank", "processed_time")
-        test_data = final_data_ranked.filter(col("rank") > split_index).drop("rank", "processed_time")
+        print(f"   Veri Seti: {len(feature_df)} satır (Train: {len(X_train)} | Test: {len(X_test)})")
         
-        train_data.cache()
-        test_data.cache()
-
-        print(f"    Veri Seti: {total_rows} satır (Train: {train_data.count()} | Test: {test_data.count()})")
-
+        # --- 4. AUTO-ML LİGİ (SCIKIT-LEARN) ---
+        models = {
+            "RandomForest_Pro": RandomForestRegressor(n_estimators=50, max_depth=10, random_state=42),
+            "GradientBoosted_X": GradientBoostingRegressor(n_estimators=50, max_depth=5, random_state=42)
+        }
+        
         best_rmse = float('inf')
         best_model = None
         best_model_name = ""
         
-        candidates = get_candidate_models()
-
-        for algo, name in candidates:
-            with mlflow.start_run(run_name=f"{symbol}_{name}"):
-                print(f"     Dövüşüyor: {name}...", end=" ")
+        for name, model in models.items():
+            with mlflow.start_run(run_name=f"{symbol}_{name}") as run:
+                print(f"   ⚔️ Dövüşüyor: {name}...", end=" ")
                 
-                try:
-                    model = algo.fit(train_data)
-                    predictions = model.transform(test_data)
-                    
-                    evaluator = RegressionEvaluator(labelCol="label", predictionCol="prediction", metricName="rmse")
-                    rmse = evaluator.evaluate(predictions)
-                    r2 = evaluator.setMetricName("r2").evaluate(predictions)
-                    
-                    print(f"-> Skor (RMSE): {rmse:.4f}")
-                    
-                    mlflow.log_param("symbol", symbol)
-                    mlflow.log_param("features", str(input_cols))
-                    mlflow.log_metric("rmse", rmse)
-                    mlflow.log_metric("r2", r2)
-                    
-                    if hasattr(model, "featureImportances"):
-                        importances = model.featureImportances.toArray()
-                        mlflow.log_param("top_feature_idx", str(np.argmax(importances)))
-
-                    if rmse < best_rmse:
-                        best_rmse = rmse
-                        best_model = model
-                        best_model_name = name
-                        print(f"       YENİ LİDER!")
-
-                except Exception as e:
-                    print(f"HATA: {e}")
+                # Eğit
+                model.fit(X_train, y_train)
                 
-                gc.collect()
+                # Tahmin ve Başarı Ölçümü
+                predictions = model.predict(X_test)
+                rmse = np.sqrt(mean_squared_error(y_test, predictions))
+                r2 = r2_score(y_test, predictions)
+                
+                print(f"-> Skor (RMSE): {rmse:.4f}")
+                
+                # MLflow'a Logla
+                mlflow.log_param("symbol", symbol)
+                mlflow.log_metric("rmse", rmse)
+                mlflow.log_metric("r2", r2)
+                
+                if rmse < best_rmse:
+                    best_rmse = rmse
+                    best_model = model
+                    best_model_name = name
+                    best_run_id = run.info.run_id
 
+        # --- 5. ŞAMPİYONU REGISTRY'YE KAYDET (ULTRA-STABİL BYPASS YÖNTEMİ) ---
         if best_model:
-            print(f"    KAZANAN: {best_model_name} (Hata: {best_rmse:.4f})")
+            print(f"   🏆 KAZANAN: {best_model_name} (Hata: {best_rmse:.4f})")
+            registered_model_name = f"model_{symbol}"
             
-            save_path = f"{MODELS_PATH}/{symbol}_model"
-            
-            best_model.write().overwrite().save(save_path)
-            
-            with mlflow.start_run(run_name=f"{symbol}_CHAMPION"):
-                mlflow.set_tag("production_status", "active")
+            with mlflow.start_run(run_name=f"{symbol}_CHAMPION") as run:
                 mlflow.log_metric("final_rmse", best_rmse)
                 mlflow.log_param("winner_algo", best_model_name)
-                mlflow.spark.log_model(best_model, "model")
-            
-            print(f"Model Production ortamına taşındı: {save_path}")
+                
+                # 🚀 BYPASS STRATEJİSİ: log_model yerine save_model + log_artifacts kullanıyoruz
+                import shutil
+                temp_path = f"/tmp/model_{symbol}"
+                if os.path.exists(temp_path): shutil.rmtree(temp_path)
+                
+                print("   📦 Model yerel olarak paketleniyor...")
+                mlflow.sklearn.save_model(sk_model=best_model, path=temp_path)
+                
+                print("   📂 Dosyalar MLflow'a yükleniyor (Artifact Upload)...")
+                # Bu aşama 404 hatası veren '/logged-models' endpoint'ini ASLA çağırmaz
+                mlflow.log_artifacts(temp_path, artifact_path="model")
+                shutil.rmtree(temp_path) # Temizlik
+                
+                # 2. Modeli Registry'ye manuel bağla
+                run_id = run.info.run_id
+                model_uri = f"runs:/{run_id}/model"
+                
+                print(f"   🚀 Registry Kaydı: {registered_model_name}")
+                client = mlflow.tracking.MlflowClient()
+                try:
+                    client.create_registered_model(registered_model_name)
+                except: pass 
 
-        train_data.unpersist()
-        test_data.unpersist()
-        gc.collect()
+                mv = client.create_model_version(registered_model_name, model_uri, run_id)
+                
+                # 3. Production etiketini bas
+                import time
+                time.sleep(2)
+                client.transition_model_version_stage(
+                    name=registered_model_name, version=mv.version,
+                    stage="Production", archive_existing_versions=True
+                )
+            print(f"   ✅ ZAFER: {registered_model_name} v{mv.version} artık Production'da!")
 
 except Exception as e:
-    print(f" KRİTİK SİSTEM HATASI: {e}")
+    print(f"❌ KRİTİK SİSTEM HATASI: {e}")
     import traceback
     traceback.print_exc()
-
-spark.stop()

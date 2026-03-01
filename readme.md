@@ -1,346 +1,390 @@
-<div align="center"> 
-  <img src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white" /> 
-  <img src="https://img.shields.io/badge/Apache_Spark-E25A1C?style=for-the-badge&logo=apache-spark&logoColor=white" /> 
-  <img src="https://img.shields.io/badge/Apache_Kafka-231F20?style=for-the-badge&logo=apache-kafka&logoColor=white" /> 
-  <img src="https://img.shields.io/badge/MinIO-C7202C?style=for-the-badge&logo=minio&logoColor=white" />
-  <img src="https://img.shields.io/badge/Delta_Lake-00AEEF?style=for-the-badge&logoColor=white" />
-  <img src="https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white" /> 
-  <img src="https://img.shields.io/badge/TimescaleDB-FDB515?style=for-the-badge&logo=timescaledb&logoColor=black" />
-  <img src="https://img.shields.io/badge/MLflow-0194E2?style=for-the-badge&logo=mlflow&logoColor=white" />
-  <img src="https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white" />
-  <img src="https://img.shields.io/badge/Streamlit-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white" />
-  <img src="https://img.shields.io/badge/Metabase-509EE3?style=for-the-badge&logo=metabase&logoColor=white" />
-  <img src="https://img.shields.io/badge/dbt-FF694B?style=for-the-badge&logo=dbt&logoColor=white" />
-  <img src="https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white" /> 
-  <img src="https://img.shields.io/badge/Prometheus-E6522C?style=for-the-badge&logo=prometheus&logoColor=white" />
-  <img src="https://img.shields.io/badge/Grafana-F46800?style=for-the-badge&logo=grafana&logoColor=white" />
-</div>
-
+<div align="center"> <img src="[https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white](https://www.google.com/search?q=https://img.shields.io/badge/Python-3776AB%3Fstyle%3Dfor-the-badge%26logo%3Dpython%26logoColor%3Dwhite)" /> <img src="[https://img.shields.io/badge/Apache_Spark-E25A1C?style=for-the-badge&logo=apache-spark&logoColor=white](https://www.google.com/search?q=https://img.shields.io/badge/Apache_Spark-E25A1C%3Fstyle%3Dfor-the-badge%26logo%3Dapache-spark%26logoColor%3Dwhite)" /> <img src="[https://img.shields.io/badge/Apache_Kafka-231F20?style=for-the-badge&logo=apache-kafka&logoColor=white](https://img.shields.io/badge/Apache_Kafka-231F20?style=for-the-badge&logo=apache-kafka&logoColor=white)" /> <img src="[https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white](https://www.google.com/search?q=https://img.shields.io/badge/Docker-2496ED%3Fstyle%3Dfor-the-badge%26logo%3Ddocker%26logoColor%3Dwhite)" /> <img src="[https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white](https://www.google.com/search?q=https://img.shields.io/badge/PostgreSQL-4169E1%3Fstyle%3Dfor-the-badge%26logo%3Dpostgresql%26logoColor%3Dwhite)" /> </div>
 
 # Enterprise Real-Time Lakehouse & MLOps Platform
 
-**Özetle Nedir?** Bu proje; verinin üretildiği andan itibaren yakalanıp işlendiği, güvenli bir şekilde depolandığı, yapay zeka algoritmalarından geçirilerek gelecek tahminlerinin üretildiği ve tüm bu sürecin **sadece 5 saniye içerisinde** tamamlanıp ekranlara yansıtıldığı **uçtan uca (End-to-End) bir Veri Mühendisliği ve MLOps ekosistemidir.**
+Bu platform, Binance WebSocket ve özel API kanalları üzerinden elde edilen gerçek zamanlı piyasa verilerini yüksek performanslı veri işleme altyapısı ile analiz eden, Delta Lake mimarisi üzerinde güvenli ve ölçeklenebilir biçimde depolayan, Apache Spark MLlib ile gelişmiş makine öğrenmesi modelleri eğiten ve dbt aracılığıyla kurumsal seviyede analitik katmanlar oluşturan uçtan uca bir veri mühendisliği ve MLOps platformudur.
 
-Geleneksel veri projelerinin aksine statik bir yapıya sahip değildir. Sistem; sürekli akan veriyi dinler, yeterli veri biriktiğinde makine öğrenmesi modellerini kendi kendine eğitir (AutoML), veri kalitesini denetler (Data Quality Gate) ve altyapı sağlığını 7/24 izler.
+Sistem mimarisi, verinin alınmasından, işlenmesine, depolanmasına, panellere aktarılmasına ve yapay zeka tabanlı tahminlerin üretilmesine kadar olan tüm süreci ortalama 5 saniye içerisinde tamamlayacak şekilde gerçek zamanlı olarak tasarlanmıştır. Bu sayede kullanıcılar, minimum gecikme ile yüksek doğruluklu analiz ve tahminlere erişebilmektedir.
 
+Platform, yüksek maliyetli ticari kripto analiz panellerine alternatif olarak, açık kaynak felsefesiyle geliştirilmiştir. Bu sayede bireysel kullanıcılar, araştırmacılar ve şirketler, sistemi özelleştirilebilir, ölçeklenebilir ve sürdürülebilir bir şekilde kendi ihtiyaçlarına göre yapılandırabilir.
 
-### 🌟 Sistemin Öne Çıkan Özellikleri:
+Özellikle kodlama yetkinliğine sahip kripto yatırımcıları ve veri mühendisleri, bu altyapıyı kendi stratejileri doğrultusunda geliştirerek, özel gösterge panelleri, ileri seviye analiz modülleri ve otomatik alım satım stratejileri oluşturabilir. Kurumsal tarafta ise şirketler, platformu kendi veri kaynaklarıyla entegre ederek kurum içi, yüksek performanslı ve güvenli bir analitik ekosistem inşa edebilir.
 
--   **⚡ Gerçek Zamanlı Akış (Low Latency):** Verinin Binance WebSocket'ten alınıp, Spark ile işlenmesi, Inference API üzerinden tahminlenmesi ve TimescaleDB aracılığıyla Streamlit dashboard'a düşmesi arasındaki toplam gecikme süresi (End-to-End Latency) ortalama 5 saniyedir.
-    
--   **🚀 Model-as-a-Service (MaaS) & RAM Optimizasyonu:** Spark üzerindeki ağır makine öğrenmesi yükü alınarak hafif ve bağımsız bir FastAPI çıkarım motoruna (`inference_api.py`) devredilmiştir. Bu sayede sistemin RAM tüketimi **%60 oranında (15 GB'tan 6 GB'a)** düşürülmüştür.
-    
--   **🧠 Gerçek Gelecek Tahmini (Data Leakage Fix):** Model eğitimi sırasında finansal projelerin en büyük kronik sorunu olan "veri sızıntısı" çözülmüştür. Algoritmalar o anki fiyatı değil, zamansal kaydırma (`shift(-1)`) tekniği ile tam olarak **bir sonraki periyodun (geleceğin)** fiyatını tahmin edecek şekilde yapılandırılmıştır.
-    
--   **🔄 Sıfır Kesinti ile Sürekli Dağıtım (Zero-Downtime CD):** Sistemin başında durmaya gerek yoktur. "ML Watcher" modülü veri havuzunu izler, modeli Pandas ve Scikit-Learn ile otonom eğitir, MLflow'a kaydeder ve canlıdaki API'ye ping atarak (`/reload`) sistemi durdurmadan yeni modeli anında devreye alır.
-    
--   **🐳 %100 İzole ve Ölçeklenebilir Mimari:** Sistem, birbirine tam entegre çalışan **16+ farklı mikroservisten** oluşmaktadır. Tüm ortam Dockerize edilmiş olup tek bir komutla (`docker-compose up`) herhangi bir işletim sisteminde ayağa kalkabilir.
-- 
-<img width="2816" height="1536" alt="Architecture" src="https://github.com/user-attachments/assets/0d3cabf3-f35d-4d77-ad85-a01477a16265" />
+Bu mimari, gerçek zamanlı veri akışı, büyük veri işleme, gelişmiş makine öğrenmesi ve profesyonel veri modelleme süreçlerini tek çatı altında birleştirerek, modern veri platformları için güçlü ve sürdürülebilir bir referans mimari sunar.
 
----
-
+<img width="2816" height="1536" alt="Gemini_Generated_Image_ywap46ywap46ywap" src="https://github.com/user-attachments/assets/0d3cabf3-f35d-4d77-ad85-a01477a16265" />
+----------
 ## 📂 Proje Yapısı
 
 ```text
-├── dashboard_app/              # Streamlit Multi-Page Kullanıcı Arayüzü
-│   ├── Home.py                 # Ana Komuta Merkezi
-│   ├── utils.py                # CSS ve Veritabanı/S3 Cache Ayarları
-│   ├── _Canli_Piyasa.py        # Canlı Fiyat ve İndikatör Takibi
-│   ├── _Batch_Yukleme.py       # Geçmiş Veri (CSV) Upload Modülü
-│   ├── _Harici_Baglanti.py     # Universal Data Gateway Arayüzü
-│   ├── _MLOps_Center.py        # MLflow AutoML Liderlik Tablosu
-│   ├── _Sistem_Yonetimi.py     # Enterprise Control Plane & Log İzleme
-│   └── KAFDROP.py              # Kafka Universal Data Deck
+.
+├── dags/                       # Airflow İş Akışları (DAGs)(Artık projeden kaldrıldı ama denemek ısteyenelr için silinmedi duruyor ama bir islevi yok artık)
+│   ├── dbt_dag.py
+│   ├── mlops_pipeline.py
+│   ├── otomatik_egitim.py
+│   └── spark_ml_pipeline.py
+│
+├── dashboard_app/              # Streamlit Kullanıcı Arayüzü
+│   ├── Home.py                 # Ana Sayfa
+│   ├── utils.py
+│   ├── admin_modules/          # Yönetim ve Backend İşlemleri
+│   └── pages/                  # Uygulama Sayfaları (Canlı Piyasa, MLOps vb.)
+│
 ├── dbt_project/                # Veri Dönüşüm Katmanı (DBT)
-├── start_windows.bat           # 🚀 Windows DevOps Command Center (Otomasyon)
-├── tests/                      # Birim Testleri (Unit Tests) 
-│   └── test_core.py            # Çekirdek Sistem Testleri (Pytest)
-├── .env                        # Çevresel Değişkenler (Şifreler & Ayarlar)
-├── docker-compose.yaml         # 17+ Servisin Orkestrasyonu
-├── Dockerfile.spark            # Spark, ML ve Veri İşleme İmajı
-├── Dockerfile.ui               # Streamlit Dashboard İmajı
-├── Dockerfile.api              # FastAPI İmajı
-├── producer.py                 # Binance WebSocket Real-Time Ingestion
-├── universal_producer.py       # IoT/Log/Genel Veri Simülatörü
-├── ingestion_api.py            # Harici Şirketler İçin REST API (FastAPI)
-├── consumer_lake.py            # Bronze Katman (Ham Veri Kaydedici - Delta)
-├── process_silver.py           # Silver Katman & Canlı AI Tahmin Motoru (Spark)
-├── inference_api.py           	#FastAPI MaaS (Model-as-a-Service) Çıkarım Motoru
-├── batch_processor.py          # CSV Toplu Veri İşleme Motoru
-├── train_model.py              # Scikit-Learn + Pandas AutoML Eğitim Fabrikası
-├── ml_watcher.py               # Otonom Model Tetikleyici & Hot Reload (CD)
-├── quality_gate.py             # Veri Kalite ve Sağlık Kapısı (Data Guard)
-└── prometheus.yml              # Altyapı İzleme Konfigürasyonu
+│   ├── dbt_project.yml
+│   ├── profiles.yml
+│   ├── Dockerfile
+│   └── models/                 # SQL Modelleri (Staging & Marts)
+│  └───target/
+├── tests/                      #
+│   ├── test.core.py            # 
+├── Dokumanlar/                 # Proje Dokümantasyonu
+├──25.3                         #kullancının projemle alakalı herseye ualsacagı genel yazılarım
+├── batch_processor.py          # Toplu veri işleme servisi
+├── Dokumanlar/                 # Proje Dokümantasyonu
+├── .env                        # Çevresel Değişkenler (Şifreler - Git'e atılmaz)
+├── .gitignore                  # Git
+├── batch_processor.py          # Geçmiş veri (CSV) toplu işleme servisi
+├── batch_user_processor.py     # Kullanıcı bazlı veri işleme
+├── consumer_lake.py            # Bronze Layer Ingestion (Ham Veri Kaydedici)
+├── docker-compose.yaml         # Tüm servislerin orkestrasyonu (17+ Servis)
+├── Dockerfile                  # Ana Python/Spark Uygulama Image Tanımı
+├── Dockerfile.connect          # Kafka Connect Özelleştirilmiş Image
+├── Dockerfile.superset         # Apache Superset Özelleştirilmiş Image
+├── fake_company.py             # Kurumsal Veri Simülatörü (HTTP POST)
+├── ingestion_api.py            # Universal API Gateway (FastAPI)
+├── ml_watcher.py               # Otonom Model Eğiticisi (Orchestrator)
+├── process_silver.py           # Silver Layer Processing & AI (Spark Streaming)
+├── producer.py                 # Binance WebSocket Veri Üreticisi
+├── prometheus.yml              # Prometheus Metrik Konfigürasyonu
+├── quality_gate.py             #  Veri Kalite Kontrolü (Data Quality Gate)
+├── test_generic.py             # Endüstriyel IoT Simülasyonu
+├── train_model.py              # ML Model Eğitim Motoru (Spark MLlib)
+└── universal_producer.py       # Çok Amaçlı (Generic) Veri Üretici
 ```
 
+##  Mimari Tasarım (Architecture)
 
-## 🏗️ Mimari Tasarım (Architecture)
-Sistem, veri mühendisliği ve MLOps standartlarına uygun olarak tasarlanmış olup, her bir Python modülü belirli bir kurumsal zorluğu (bottleneck) aşmak üzere kodlanmıştır:
+Sistem, verinin ham halden alınarak anlamlı iş zekası raporlarına dönüşmesine kadar 5 ana katmandan oluşur:
 
-#### 1. Veri Girişi ve Mesajlaşma (Ingestion Layer)
+Proje, her biri belirli bir amaca hizmet eden modüler bir yapı üzerine inşa edilmiştir. Aşağıda, sistemin omurgasını oluşturan dosyaların detaylı açıklamalarını bulabilirsiniz:
 
--   **`producer.py` (Binance WebSocket Connector):**
+####  Veri Girişi ve API (Ingestion)
+
+-  **`producer.py` (Real-Time Ingestion Engine):** Binance WebSocket API'sine milisaniye hassasiyetinde bağlanarak canlı piyasa verilerini yakalayan ana veri sürücüsüdür.
     
-    -   **Heartbeat & Resilience:** Ağ kopmalarına karşı `ws.run_forever(ping_interval=70, ping_timeout=10)` kullanılarak bağlantının canlı kalması sağlanmıştır.
+    -   **Asenkron Mesajlaşma:** Yakalanan trade verilerini Apache Kafka'nın `market_data` topic'ine asenkron olarak iletir.
         
-    -   **Kafka Optimizasyonu:** Band genişliği tasarrufu için `compression_type='gzip'` kullanılmıştır. Olası broker kesintilerinde veri kaybını önlemek için `retries=5` ve hız/güvenlik dengesi için `acks=1` (Leader Acknowledgement) yapılandırması mevcuttur.
-
-#### 2. Veri İşleme ve Storage (Processing & Lakehouse)
-
--   **`consumer_lake.py` (Bronze Layer / Raw Archive):**
-    
-    -   **Dumb Consumer Pattern:** Kafka'daki veriyi hiçbir ayrıştırma (parse) işlemine sokmadan doğrudan `string` olarak okur. Bu, şema değişikliklerinde veri kaybı riskini sıfıra indirir.
+    -   **Gelişmiş Kafka Yapılandırması:** * **Hata Toleransı:** Bağlantı kopmalarına karşı `retries=5` yapılandırması ve `acks=1` (Leader Acknowledgement) ile hız-güvenlik dengesi optimize edilmiştir.
         
-    -   **Backpressure (Geri Basınç) Yönetimi:** `maxOffsetsPerTrigger=1000` parametresi ile anlık veri patlamalarında (Spike) Spark motorunun çökmesi engellenmiştir.
+        -   **Performans:** Ağ bant genişliği tasarrufu için `gzip` sıkıştırma protokolü kullanılmıştır.
+            
+    -   **Veri Normalizasyonu ve Zenginleştirme:** Binance'den gelen ham JSON verilerini (`s`, `p`, `q`, `T`) sistemle uyumlu `symbol`, `price`, `quantity` ve `timestamp` alanlarına haritalar (mapping).
         
--   **`process_silver.py` (API-Driven Spark Streaming):**
-    
-    -   **Hafifletilmiş Spark Engine:** Diskten model okumaya çalışan hantal MLlib kodları sistemden sökülmüştür. Spark artık sadece 30 saniyelik pencerelerde (Sliding Window) 7-boyutlu özellik vektörlerini hesaplar ve tahmin için veriyi `requests.post` ile anlık olarak Inference API'ye yollar.
+    -   **Sistem İzlenebilirliği:** Verinin Binance'den çıktığı an ile sisteme girdiği anı karşılaştırmak için `event_time` (ISO format) damgası ekleyerek gecikme (latency) analizine olanak tanır.
         
-    -   **Pandas 2.0+ Zırhı:** PySpark ve Pandas 2.0 arasındaki `datetime64[ns]` çökme hatasını (Bug) engellemek için, tarihler DataFrame'e girmeden önce `cast("string")` ile güvenli bir formata dönüştürülmüştür.
+    -   **Dayanıklılık (Resilience):** WebSocket bağlantısının canlı kalması için `ping_interval` kontrolü ve Kafka broker hazır olana kadar devrede kalan `time.sleep(5)` tabanlı dinamik yeniden bağlanma (reconnection) mekanizmasına sahiptir.
+    
+### `ingestion_api.py`
+> **Önemli Not:** Bu modül sistemin ana veri akışından bağımsız olarak tasarlanmış bir **"opsiyonel genişletme katmanı"**dır. Temel amacı Binance dışındaki özel şirketlerin veya harici veri kaynaklarının kendi verilerini sisteme dahil edebilmesi için standart bir giriş kapısı sunmaktır.
+
+-   **`ingestion_api.py` (Universal API Gateway):** FastAPI tabanlı asenkron bir uç nokta (endpoint) sunarak, dış kaynaklardan gelen özel finansal verileri Kafka ekosistemine dahil eden köprü modülüdür.
+    
+    -   **Esnek Veri Kabulü:** Harici şirketlerin (`symbol`, `price`, `timestamp`) formatındaki verilerini `POST` isteği ile kabul eder ve otomatik olarak `market_data` akışına enjekte eder.
         
-    -   **Polyglot Persistence:** İşlenmiş veri, asenkron `foreachBatch` döngüsü içinde hem MinIO'ya (Analitik için Delta Lake `append` modu), hem de Streamlit paneli için **TimescaleDB**'ye (PostgreSQL Hypertable JDBC) eşzamanlı yazılır.
+    -   **Veri Doğrulama ve Ön İşleme:**
         
--   **`batch_processor.py` (ETL & Sanitization):**
-    
-    -   **Data Sanitization:** Geçmişe dönük yüklenen CSV'lerdeki hatalı ve Türkçe karakterleri, Regex (`re.sub`) tabanlı `clean_column_name` fonksiyonu ile DB formatına otonom olarak uyarlar.
-
-#### 3. Çıkarım, MLOps ve Otomasyon (Inference & AI Orchestration)
-
--   **`inference_api.py` (FastAPI MaaS Engine):**
-    
-    -   **Model-as-a-Service:** Spark'tan bağımsız çalışan hafif çıkarım motorudur. MLflow'dan "Production" etiketli modeli çeker, Singleton mimarisiyle RAM'de önbellekler (Cache) ve gelen verilere milisaniyeler içinde cevap verir.
-
--   **`ml_watcher.py` (Continuous Deployment Orchestrator):**
-    
-    -   **Zero-Downtime Hot Reload:** Eğitim bitip model MLflow'a yüklendikten sonra, canlıdaki API'ye `requests.post("http://inference_api:8001/reload")` isteği atarak "RAM'ini temizle, yeni modeli çek" talimatı verir. Sistem asla kapanmaz.
+        -   Gelen isteklerde zorunlu alan kontrolü yaparak hatalı veri girişini (Bad Request) uygulama seviyesinde engeller.
+            
+        -   Eksik `quantity` verisi içeren isteklere otomatik olarak varsayılan değerler atayarak veri hattının sürekliliğini korur.
+            
+    -   **Dinamik Kafka Entegrasyonu:** `get_kafka_producer` fonksiyonu ile Singleton tasarım desenine uygun şekilde tekil bir Kafka bağlantısı oluşturur ve gelen verileri kuyruğa (queue) asenkron olarak aktarır.
         
-    -   **Lightweight Querying:** Spark motorunu gereksiz yere ayağa kaldırmamak için doğrudan `deltalake` kütüphanesini (Rust tabanlı) kullanarak MinIO'ya bağlanır ve maliyetsiz satır sayımı (`len(dt.to_pandas())`) yapar. "Avcı" ve "Devriye" modları ile eğitimi tetikler.
+    -   **Hata Yönetimi (Exception Handling):** Kafka bağlantı kopmaları veya geçersiz veri formatları durumunda standart HTTP 500/400 hata kodları ile istemciyi bilgilendirerek güvenli bir veri iletimi sağlar.
+    
+-    **`fake_company.py`**: Sistemi test etmek için geliştirilmiş bir simülatördür. Kendi şirket verileriniz varmış gibi FastAPI üzerinden sisteme veri gönderir.
+    
+
+####  Veri İşleme ve Storage (Processing & Lakehouse)
+
+ **`process_silver.py` (The Heart of Analytics):** Apache Spark Structured Streaming mimarisini kullanarak Kafka'dan gelen ham verileri "Silver" katmanına dönüştüren ve **"in-flight"** (akış anında) AI çıkarımı yapan modüldür.
+
+-   **Hibrit Model Yükleme (Model Persistence):** `get_model_for_symbol` fonksiyonu ile MinIO (S3) üzerindeki en güncel regresyon modellerini (RandomForest, Linear, GBT, DecisionTree) dinamik olarak yükler ve bellek yönetimi için `model_cache` mekanizmasını kullanır.
+    
+-   **Mikro-Yığın (Micro-batch) Stratejisi:** `.trigger(processingTime='5 seconds')` yapılandırmasıyla her 5 saniyede bir tetiklenen işlem döngüsü, düşük gecikmeli veri işleme ve veritabanı senkronizasyonu sağlar.
+    
+-   **Gelişmiş Veri Normalizasyonu:** Farklı kaynaklardan (Binance veya API Gateway) gelebilecek heterojen JSON verilerini `coalesce` fonksiyonu ile standartlaştırarak şema bütünlüğünü (Schema Enforcement) korur.
+    
+-   **7-Boyutlu Öznitelik Mühendisliği (Feature Vectorization):** Makine öğrenmesi modellerinin ihtiyaç duyduğu öznitelikleri canlı akıştan türetir:
+    
+    -   **İstatistiksel Analiz:** 30 saniyelik pencerelerde `stddev_pop` ile anlık volatilite hesaplaması yapar.
         
--   **`train_model.py` (Pandas & Scikit-Learn Training Factory):**
-    
-    -   **Rust Tabanlı Okuma:** Ağır Spark (MLlib) okumaları tamamen kaldırılmış, MinIO'dan ışık hızında okuma yapmak için `deltalake` (Rust) gücü kullanılmıştır.
+    -   **Vektörleştirme:** `VectorAssembler` kullanarak volatilite, hareketli ortalamalar ve momentum gibi 7 farklı değişkeni tek bir özellik vektöründe birleştirir.
         
-    -   **Data Leakage Fix (Veri Sızıntısı Koruması):** Modelin o anki fiyatı tahmin etme hatası, bağımlı değişkene `df['average_price'].shift(-1)` uygulanarak tamamen çözülmüş, makine öğrenmesinin gerçek geleceği öğrenmesi sağlanmıştır.
+-   **Çok Katmanlı Depolama (Polyglot Persistence):**
+    
+    -   **Lakehouse:** Analitik geçmiş ve ACID garantisi için verileri Partitioned Delta Lake (S3a) formatında arşivler.
         
-    -   **AutoML League & Registry:** Zaman serisi kuralına uygun olarak %80/%20 ayrılan veri seti üzerinde RandomForest ve GradientBoosting algoritmalarını yarıştırır. En düşük RMSE değerini alanı MLflow'a kaydeder ve versiyonu otomatik olarak `Production` aşamasına geçirir.
-
-#### 4. İzleme, Kalite ve DevOps (Observability & Data Quality)
-
--   **`quality_gate.py` (Offline Data Quality Gate):**
-    
-    -   Büyük veri projelerindeki *"Garbage In, Garbage Out"* (Çöp giren çöp çıkar) riskine karşı devre kesici olarak yazılmıştır. Delta Lake'i okuyup; sıfırın altındaki fiyatları, null (eksik) volatilite değerlerini ve bozuk zaman damgalarını tarayıp terminale/loglara CI/CD tarzı PASS/FAIL raporu basar.
+    -   **Operasyonel DB:** Dashboard sisteminin anlık beslenmesi için PostgreSQL üzerine `foreachBatch` yöntemiyle asenkron yazım gerçekleştirir.
         
--   **`_Sistem_Yonetimi.py` & Streamlit Stack (Control Plane):**
+-   **Hata Toleransı (Resilience):** `checkpointLocation` kullanımı sayesinde sistem kesintiye uğrasa bile veri kaybı yaşamadan kaldığı yerden devam edebilen bir yapı sunar.
     
-    -   **Docker SDK Integration:** `docker.from_env()` kullanılarak Python içinden doğrudan Docker soketine bağlanılır. Kullanıcı, arayüz üzerinden Spark konteynerine komut göndererek Delta Lake üzerinde bakım (`Optimize` ve `Vacuum`) işlemlerini tetikleyebilir.
-        
-    -   **Host Telemetry:** `psutil` kütüphanesi entegrasyonu ile dashboard üzerinden sunucunun anlık CPU, RAM ve Disk kullanımı izlenebilir.
-        
-    -   **Failover Mechanism (`utils.py`):** MLflow servisine bağlanırken önce dış DNS (`http://mlflow_server:5000`), başarısız olursa internal Docker köprüsü (`http://host.docker.internal:5000`) denenerek hata toleranslı (Fault-tolerant) bir yapı kurulmuştur.
-
-## 🛠️ Kurulum ve Çalıştırma Rehberi (DevOps Command Center)
-
-Sistemi ayağa kaldırmak ve yönetmek için tüm mikroservis mimarisi Docker üzerinden kurgulanmıştır.
-
-### 🪟 Windows Kullanıcıları İçin (Otomatik Kurulum)
-
-Windows ortamında tek tıkla kurulum ve yönetim için `start_windows.bat` komuta merkezini hazırladım. Bu script:
-
-1.  Docker WSL2 motoru için ideal RAM ve CPU optimizasyonunu (`.wslconfig` dosyasına 8GB RAM ve 4 Çekirdek yazarak) otomatik yapar.
-    
-2.  İnteraktif bir menü sunarak sistemi başlatma, durdurma, log okuma ve model eğitme gibi 18 farklı komutu tek tuşla yönetmenizi sağlar.
-    
-3.  :    start_windows.bat dosyasına çift tıklayarak baslatabılır her seyi tek yerden yönetebilrsiniz.
-
-
-### 🐧 Linux / Mac ve Manuel Kullanım İçin (Kopyala & Yapıştır Komutlar)
-
-Eğer `.bat` dosyasını kullanamıyorsanız veya terminal üzerinden tam kontrol istiyorsanız, sistemin yeteneklerini aşağıdaki komutlarla kullanabilirsiniz:
-
-#### 🟢 1. Altyapı Kontrolü ve Sistem Döngüsü
-
-Sistemi başlatmak, durdurmak ve izlemek için temel Docker komutları:
-
--   **Sistemi Başlat (Up):** Tüm 17+ servisi arka planda ayağa kaldırır.
-    
-    Bash
-    
-    ```
-    docker-compose up -d
-    
-    ```
-    
--   **Sistemi Durdur (Stop):** Veri kaybetmeden servisleri uykuya alır.
-    
-    Bash
-    
-    ```
-    docker-compose stop
-    
-    ```
-    
--   **Sistemi Sıfırla (Hard Reset):** ⚠️ DİKKAT! Tüm veritabanı, MinIO Data Lake ve Kafka kuyrukları silinir!
-    
-    Bash
-    
-    ```
-    docker-compose down -v
-    
-    ```
-    
--   **Sağlık Durumu (Health Check):** Çalışan servislerin portlarını ve durumlarını temiz bir tablo halinde listeler.
-    
-    Bash
-    
-    ```
-    docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
-    
-    ```
-    
-
-#### 🔄 2. Hot Reload (Sistemi Kapatmadan Güncelleme)
-
-Kodlarda bir değişiklik yaptığınızda tüm sistemi kapatmanıza gerek yoktur. Sadece ilgili servisi yeniden derleyip başlatabilirsiniz:
-
--   **Arayüzü (Dashboard) Güncelle:**
-    
-    Bash
-    
-    ```
-    docker-compose up -d --build dashboard
-    
-    ```
-    
--   **Yapay Zeka Motorunu (Silver Layer) Güncelle:**
-    
-    Bash
-    
-    ```
-    docker-compose up -d --build spark-silver
-    
-    ```
-    
--   **Veri Toplayıcıyı (Bronze Layer) Güncelle:**
-    
-    Bash
-    
-    ```
-    docker-compose up -d --build spark-consumer
-    
-    ```
-    
-
-#### 🧠 3. MLOps ve Yapay Zeka (Model Eğitimi)
-
-Sistemde yeterli veri biriktiğinde (Lakehouse dolduğunda) AI modellerini eğitmek veya otonom bırakmak için:
-
--   **Toplu Model Eğitimi (Tüm Coinler/Veriler İçin):** Enterprise AutoML motorunu başlatır.
-    
-    Bash
-    
-    ```
-    docker exec -it spark-silver python /app/train_model.py ALL
-    
-    ```
-    
--   **Spesifik Varlık Eğitimi:** Sadece belirli bir sembol (Örn: BTCUSDT veya Tesla) için modelleri yarıştırır.
-    
-    Bash
-    
-    ```
-    docker exec -it spark-silver python /app/train_model.py BTCUSDT
-    
-    ```
-    
--   **Otonom ML Watcher'ı Başlat:** Veri biriktikçe kendi kendine eğitim yapmasını arka planda başlatır.
-    
-    Bash
-    
-    ```
-    docker exec -d spark-silver python /app/ml_watcher.py
-    
-    ```
-    
-
-#### 🧹 4. DataOps (Veri Yönetimi ve Temizlik)
-
-Test süreçlerinde şişen veri havuzlarını temizlemek için:
-
--   **PostgreSQL (Gold Layer) Temizliği:** Dashboard üzerindeki verileri sıfırlar.
-    
-    Bash
-    
-    ```
-    docker exec -it postgres psql -U admin_lakehouse -d market_db -c "TRUNCATE TABLE market_data;"
-    
-    ```
-    
--   **MinIO Delta Lake Temizliği:** S3 Bucket üzerindeki ham ve işlenmiş Lakehouse verilerini kökten siler.
-    
-    Bash
-    
-    ```
-    docker exec -it minio mc rm -r --force s3/market-data/raw_layer_delta s3/market-data/silver_layer_delta
-    
-    ```
-    
-
-#### 📋 5. Araçlar ve Raporlama (Monitoring)
-
-Hata ayıklama (Debug) ve canlı kaynak izleme:
-
--   **Canlı Log Okuma:** Belirli bir servisin (örn: `spark-silver`, `dashboard`, `producer`) son 50 satır logunu canlı olarak ekrana basar.
-    
-    Bash
-    
-    ```
-    docker logs --tail 50 -f spark-silver
-    
-    ```
-    
--   **Canlı CPU/RAM ve Ağ İzleme (Resource Monitor):** Tüm konteynerlerin anlık kaynak tüketimlerini gösterir. Çıkmak için `CTRL + C` yapabilirsiniz.
-    
-    Bash
-    
-    ```
-    docker stats
-    
-    ```
-    
-
-_(Not: Sistemin ilk kurulumunda `db-init` servisi PostgreSQL üzerinde gerekli `market_data` tablosunu ve TimescaleDB hypertable'ını otomatik olarak kuracaktır)._
 
 ----------
 
-## 📊 İzleme ve Analiz Panelleri (Servisler)
 
-Sistem ayağa kalktıktan sonra aşağıdaki linklerden tüm ekosistemi yönetebilirsiniz:
+-   **`consumer_lake.py` (The Data Archivist):** Apache Kafka'daki ham verileri (Raw Data) yakalayan ve ACID garantisi sunan **Delta Lake Bronze** katmanına kalıcı olarak kaydeden modüldür.
+    
+    -   **Spark-Delta Entegrasyonu:** Spark Session üzerinden Delta Lake uzantılarını (`DeltaSparkSessionExtension`) aktif ederek, nesne depolama katmanı (MinIO) üzerinde tam veri tutarlılığı sağlar.
+        
+    -   **Güvenli Veri Edinimi (Reliable Streaming):**
+        
+        -   **`startingOffsets: earliest`**: Kafka topic'indeki tüm geçmiş verileri en baştan itibaren okuyarak veri kaybını önler ve geçmişe dönük analiz (audit) imkanı tanır.
+            
+        -   **`failOnDataLoss: false`**: Herhangi bir veri kaybı durumunda sistemin durmasını engelleyerek sürekliliği (fault-tolerance) sağlar.
+            
+    -   **Akış Optimizasyonu (Backpressure Management):** `maxOffsetsPerTrigger=1000` yapılandırması ile her mikro-yığında maksimum 1000 mesaj işleyerek yüksek trafik altında sistemin tıkanmasını (throttling) önler.
+        
+    -   **Yapısal Dönüşüm:** Kafka'dan binary formatta gelen verileri string'e cast ederek tanımlanmış `StructType` şemasına göre kolonlara ayırır.
+        
+    -   **Delta Lake Depolama Stratejisi:**
+        
+        -   **`partitionBy("symbol")`**: Verileri kripto paraların sembollerine göre fiziksel klasörlere (partition) ayırarak, ilerideki sorgulama performansını optimize eder.
+            
+        -   **Checkpointing**: `checkpointLocation` kullanımı ile yazma işlemi sırasında oluşabilecek kesintilerde Spark'ın kaldığı yerden devam etmesini sağlar.
+            
+    -   **Mikro-Yığın Zamanlaması:** `trigger(processingTime='10 seconds')` ile verileri 10 saniyelik aralıklarla MinIO (S3a) üzerine `append` moduyla kalıcı olarak işler.
+    
+-    **`dbt_project/`**: Verinin Silver'dan Gold katmanına (Analitik katman) dönüşümü için gerekli SQL modellerini içerir. Veri temizleme ve aggregation işlemleri burada döner.
+    
 
-| Servis Adı | Port / Link | Açıklama |
-| :--- | :--- | :--- |
-| **Streamlit Dashboard** | [http://localhost:8501](http://localhost:8501) | Ana Komuta Merkezi, Canlı Piyasa, Sistem Yönetimi |
-| **MLflow Registry** | [http://localhost:5000](http://localhost:5000) | Makine Öğrenmesi Model Takibi ve Versiyonlama |
-| **MinIO Console** | [http://localhost:9001](http://localhost:9001) | S3 Object Storage Browser *(User: admin / Pass: admin12345)* |
-| **Metabase BI** | [http://localhost:3005](http://localhost:3005) | Gelişmiş SQL Raporlama ve İş Zekası (Varsa) |
-| **Grafana Monitor** | [http://localhost:3001](http://localhost:3001) | CPU, RAM, Ağ Metrikleri ve Altyapı İzleme |
-| **KAFDROP / Data Deck** | [http://localhost:9010](http://localhost:9010) | Kafka Topic ve Mesaj İçeriği İzleme |
-| **FastAPI Swagger** | [http://localhost:8000/docs](http://localhost:8000/docs) | API Gateway Dokümantasyonu |
-| **cAdvisor** | [http://localhost:8090/containers/](http://localhost:8090/containers/) | Konteyner Performans Metrikleri |
+#### MLOps ve Otomasyon (Orchestration)
+
+
+**`train_model.py` (The Intelligent Backbone):** Spark MLlib ve MLflow entegrasyonu ile çalışan, Silver katmanındaki verileri kullanarak en optimize tahmin modellerini otonom olarak üreten bir model geliştirme fabrikasıdır.
+
+-   **Zaman Serisi Tabanlı Öznitelik Mühendisliği (`create_smart_features`):** Ham fiyat verilerini finansal göstergelere dönüştürür:
+    
+    -   **Lag (Gecikme) Analizi:** Geçmiş fiyat hareketlerini (`lag_1`, `lag_3`) modele girdi olarak sunar.
+        
+    -   **Hareketli Ortalamalar:** `ma_5` ve `ma_10` ile kısa ve orta vadeli trendleri hesaplar.
+        
+    -   **Dinamik Göstergeler:** Fiyat ivmesini (`momentum`) ve volatilite değişimlerini otonom olarak türetir.
+        
+-   **Algoritma Yarışması (AutoML League):** Sistem, her eğitim döngüsünde dört farklı güçlü algoritmayı birbiriyle yarıştırır:
+    
+    -   **ElasticNet (Linear Regression):** Düzenlileştirilmiş doğrusal analiz.
+        
+    -   **DecisionTree & RandomForest:** Karar ağacı tabanlı topluluk (ensemble) öğrenmesi.
+        
+    -   **GBTRegressor (Gradient Boosted Trees):** Hata odaklı ardışık modelleme.
+        
+-   **MLOps ve Deney Takibi (MLflow):** Her eğitim oturumu MLflow üzerinde kayıt altına alınır; RMSE ve $R^2$ metrikleri, öznitelik önem sıralamaları ve model parametreleri sistematik olarak loglanır.
+    
+-   **Akıllı Model Seçimi ve Dağıtımı (Champion Model):**
+    
+    -   **RMSE Optimizasyonu:** En düşük hata payına sahip model "KAZANAN" (Champion) olarak seçilir.
+        
+    -   **Production Deployment:** Kazanan model, `overwrite()` yöntemiyle MinIO (S3) üzerindeki üretim yoluna otomatik olarak taşınır ve `spark-silver` servisi tarafından canlı tahminleme için anında kullanılmaya başlanır.
+        
+-   **Veri Ayrıştırma Stratejisi:** Veriler rastgele değil, zaman serisi mantığına uygun olarak `%80` eğitim ve `%20` test (son gelen veriler) şeklinde kronolojik olarak ayrıştırılır (`TimeSeries Split`)
+
+ 
+Paylaştığın **`ml_watcher.py`** kodu, projenin **"Otonom Karar Mekanizması"**dır. Bu modül, sistemin sürekli başında durmana gerek kalmadan, verinin olgunlaştığını anlar ve model eğitim sürecini (`train_model.py`) akıllı bir şekilde tetikler.
+
+İşte bu kodun teknik işleyişini ve projedeki stratejik önemini anlatan profesyonel açıklama metni:
 
 ----------
 
-## ⚡ Eklenen Yeni "Enterprise" Özellikler
+### ⏳ Otonom Model İzleme ve Tetikleme Sistemi (ML Watcher)
 
-1.  **🧬 Generic Producer & Schema Agnostic Ingestion:** Eski sabit kodlu yapı terk edildi. Producer ve Kafka katmanı artık sadece taşıyıcıdır. Sistem JSON içindeki `data_type` etiketine göre veriyi tanır (Crypto, IoT, Log).
+-   **`ml_watcher.py` (The Orchestration Sentry):** Delta Lake üzerindeki veri hacmini sürekli denetleyen ve sistemin "kendi kendini eğitme" (Self-training) kabiliyetini yöneten bekçi modülüdür.
     
-2.  **🗄️ Multi-Tenant Data Lake Storage:** MinIO üzerindeki Delta Lake dosyaları rastgele tutulmaz, kaynağına göre otomatik Partitioned (Bölümlenmiş) olarak saklanır (`source=binance`, vb.).
+    -   **Olay Güdümlü Eğitim (Event-Driven Training):** Sabit bir zaman çizelgesi yerine, veri odaklı bir strateji izler:
+        
+        -   **Avcı Modu (Initial Hunt):** Sistem ilk başladığında, Silver katmanında `MIN_ROWS_TO_START=20` eşiğine ulaşılana kadar 10 saniyede bir tarama yaparak ilk modelin en kısa sürede üretilmesini sağlar.
+            
+        -   **Devriye Modu (Maintenance):** İlk eğitim tamamlandıktan sonra, sistem kaynaklarını korumak amacıyla 5 dakikalık (`NORMAL_INTERVAL_SEC`) periyotlarla düzenli kontrollere geçer.
+            
+    -   **Doğrudan Delta Lake Entegrasyonu:** `deltalake` kütüphanesi ve `storage_options` üzerinden MinIO (S3) ile doğrudan konuşarak Spark'a ihtiyaç duymadan veri sayımı (row count) yapar; bu sayede düşük kaynak tüketimiyle izleme gerçekleştirir.
+        
+    -   **Alt Süreç Yönetimi (Subprocess Orchestration):** `subprocess.run` mekanizması ile `train_model.py` dosyasını bağımsız bir işlem olarak başlatır, çıktıları (stdout/stderr) yakalayarak eğitim başarısını doğrular.
+        
+    -   **Hata Yönetimi ve Dayanıklılık:** Henüz veri oluşmamış olması veya ağ gecikmeleri gibi istisnai durumları `try-except` blokları ile yöneterek izleme sürecinin kesintisiz devam etmesini sağlar.
     
-3.  **🛡️ Otonom Bakım (Maintenance Job):** Streamlit yönetim panelinden "Delta Lake Bakım Motoru" çalıştırılarak S3 üzerindeki küçük parçalı dosyalar birleştirilir (Optimize) ve çöpler temizlenir (Vacuum).
+#### 🖥️ Arayüz ve Altyapı (UI & DevOps)
+
+-   📊 **`dashboard.py`**: **Streamlit** ile geliştirilmiş komuta merkezidir. Canlı fiyat akışını, yapay zeka tahminlerini ve sistem sağlığını görselleştirir.
     
+-   🐳 **`docker-compose.yaml`**: Tüm ekosistemi (Kafka, Spark, Airflow, MinIO, Postgres vb.) birbirine bağlı ve izole bir şekilde ayağa kaldıran ana orkestrasyon dosyasıdır.Tüm ekosistemi (17+ servis) izole ve bağımlılıkları yönetilmiş şekilde ayağa kaldırır.
+    
+-   📦 **`Dockerfile` / `Dockerfile.spark`**: Spark ve API gibi özel servislerin çalışması için gerekli kütüphane ve bağımlılıkların (Python, Java, Delta Jar) tanımlandığı paketleme dosyalarıdır.
+    
+-   📑 **`requirements.txt`**: Projenin çalışması için gerekli tüm Python kütüphanelerinin (PySpark, Kafka-Python, Delta-Spark, FastAPI) listesidir.
+----------
+## 🛠️ Kurulum ve Çalıştırma Rehberi
+### 1. Sistemi Başlatma
+
+Docker konteynerlerini (Kafka, Spark, Airflow, Postgres, MinIO vb.) derler ve arka planda çalıştırır:
+Bash
+```
+docker-compose up -d --build
+```
+### 2. AI Modellerini Eğitme
+
+Sistemde yeterli veri biriktikten sonra modelleri eğitmek ve MLflow'a kaydetmek için:
+Bash
+```
+# Checkpoint silmeden eğitim başlatmak
+1.  Manuel olarak:
+docker exec -it spark-silver python train_model.py
+2.  Otomatik olarak:
+docker exec -it spark-silver python ml_watcher.py
+# Checkpoint silerek eğitimi sıfırdan baslatmak
+docker exec -it spark-silver rm -rf /app/checkpoints_silver_1
+```
+
+### 3. dbt Dönüşümlerini Çalıştırma
+Verileri PostgreSQL Gold katmanına dönüştürmek ve analitik hazırlık yapmak için:
+Bash
+```
+docker exec dbt_transformer dbt run
+```
 
 ----------
+
+## 📊 İzleme ve Analiz Panelleri
+
+**Servis Port Kullanım Amacı**
+
+**Streamlit Dashboard**:
+`http://localhost:8501` Canlı Teknik Analiz & AI Tahmin Bandı.
+
+**Metabase BI**
+`http://localhost:3005/`Kurumsal SQL Raporlama & Business Intelligence.
+
+**MLflow**
+`http://localhost:5000/`Model Versiyonlama ve Performans Takibi.
+
+**KrafDrop**
+`http://localhost:9010`Bınance veri akısını izleme.
+
+**MinIO Console**
+`http://localhost:9001`S3 Lakehouse Veri Görüntüleyici.
+
+**Grafana**
+`http://localhost:3001/`Sistem Sağlığı ve Altyapı İzleme.
+
+**CAdvisor**
+`http://localhost:8090/containers/`
+
+**API Docs**
+`http://localhost:8000/docs`FastAPI Swagger Dokümantasyonu.
+
+----------
+
+## 👨‍💻 Geliştirici Notları (Ops & Debug)
+
+### **Kodlarda değişiklik yaptığında tüm sistemi kapatıp açmana gerek yok.**
+
+örnek:Konteyneri durdurmadan dashboard kodunu güncellemek için:
+Bash
+```
+docker cp dashboard.py dashboard:/app/dashboard.py
+docker restart dashboard
+```
+### **Köklü Değişiklik veya Kütüphane Eklediysen (Dockerfile).**
+Bash
+```
+docker-compose up -d --build
+```
+
+### **Veri Doğrulama (SQL)**
+
+Verilerin doğru yazıldığını PostgreSQL içinden kontrol etmek için:
+Bash
+```
+docker exec -it postgres psql -U admin -d market_db -c "SELECT * FROM crypto_prices LIMIT 10;"
+```
+
+### **Eklenen yeni özellikler v1**
+**[TR]** Proje, başlangıçta sadece Binance API'sine bağlıyken, yapılan büyük mimari güncellemelerle **Veri Bağımsız (Data Agnostic)** bir yapıya dönüştürülmüştür. Artık sistem, veri kaynağının ne olduğuna bakmaksızın (IoT, Finans, E-Ticaret, Loglar) her türlü JSON verisini dinamik olarak işleyip MinIO Data Lake'e arşivleyebilir.
+### 🚀 Key Capabilities (Neler Eklendi?)
+
+#### 1. 🧬 Generic Producer & Schema Agnostic Ingestion
+
+Eski "Hardcoded" (sabit kodlu) yapı terk edildi. Producer ve Kafka katmanı artık verinin içeriğiyle ilgilenmez, sadece taşıyıcı görevi görür.
+
+-   **Önceden:** Sadece `symbol`, `price` sütunlarını kabul ediyordu.
+    
+-   **Şimdi:** Herhangi bir JSON yapısını kabul eder. Sistem `data_type` etiketine göre veriyi otomatik tanır.
+    
+
+#### 2. ⚡ Dynamic Spark Processing (Polymorphic Handling)
+
+Apache Spark Streaming job'ları, gelen veriyi dinamik olarak ayrıştırır (parsing).
+
+-   Gelen veri **CRYPTO** ise -> Finansal analiz şemasına sokar.
+    
+-   Gelen veri **IOT** ise -> Sensör/Telemetri şemasına sokar.
+    
+-   Gelen veri **LOGS** ise -> Metin analizi şemasına sokar.
+    
+
+#### 3. 🗄️ Multi-Tenant Data Lake Storage (MinIO)
+
+Veriler MinIO üzerinde karmaşık halde değil, kaynaklarına göre otomatik bölümlenmiş (partitioned) klasörlerde saklanır.
+
+-   `s3a://lakehouse/data/source=binance/...`
+    
+-   `s3a://lakehouse/data/source=iot_sensors/...`
+    
+-   `s3a://lakehouse/data/source=stock_market/...`
+### 💻 Code Example: How It Handles Different Data
+
+Sistemin esnekliğini gösteren JSON yapıları:
+
+JSON
+
+```
+// Gelen Veri 1: Kripto (Sistem bunu otomatik tanır)
+{
+  "source": "BINANCE",
+  "payload": { "symbol": "BTC", "price": 45000, "vol": 120 }
+}
+
+// Gelen Veri 2: Fabrika Sensörü (Kod değiştirmeden bunu da işler)
+{
+  "source": "IOT_SENSOR",
+  "payload": { "device_id": "XJ-9", "temp": 85.5, "vibration": "HIGH" }
+}
+```
+###🛡️ Data Quality Gate (Veri Kalite ve Sağlık Kapısı)
+Sistemin körü körüne veri işlemesini engelleyen, **Lakehouse Mimarisinin "Doktoru"** olarak görev yapan denetim katmanıdır. Silver (İşlenmiş) katmandaki verilerin finansal ve teknik tutarlılığını analiz eder.
+
+Büyük veri projelerindeki *"Garbage In, Garbage Out"* (Çöp girerse çöp çıkar) problemini engellemek için geliştirilmiştir.
+
+### 🔍 Denetim Mekanizması (Audit Logic)
+**`quality_gate.py`** modülü, Spark motorunu kullanarak Delta Lake üzerinde şu kritik kontrolleri gerçekleştirir:
+
+1.  **📉 Negatif Fiyat Kontrolü (Financial Integrity):**
+    * Finansal piyasalarda varlık fiyatı `0` veya negatif olamaz. Bu durum veri kaynağındaki bir hatayı (bug) işaret eder.
+2.  **🧩 Eksik Veri Taraması (Null Safety):**
+    * Yapay zeka modellerinin beslendiği `volatility` (oynaklık) veya teknik indikatörlerin hesaplanıp hesaplanmadığını kontrol eder.
+3.  **⏳ Zaman Tutarlılığı (Temporal Validity):**
+    * `processed_time` veya `event_time` alanlarında bozulma olup olmadığını, gelecekten gelen (Future Date) hatalı verileri denetler.
+
+### 📊 Raporlama ve Aksiyon
+Sistem tarama sonucunda iki tür rapor üretir:
+* ✅ **PASSED (Mükemmel):** Veri seti temiz, ML modelleri eğitilebilir.
+* ❌ **FAILED (Hatalı):** Kritik hatalar tespit edildi, ilgili satırlar karantinaya alınmalı veya alarm üretilmeli.
+
+**Nasıl Çalıştırılır?**
+Bu denetim, **Enterprise Control Plane (Sistem Yönetimi Paneli)** üzerinden tek tıkla canlı log takibiyle çalıştırılabildiği gibi, terminal üzerinden de tetiklenebilir:
+
+```bash
+docker exec -it spark-silver python quality_gate.py
+```    
 
 ## 🤝 Katkıda Bulunun (Contributing)
 
@@ -348,27 +392,22 @@ Bu proje bir **YBS öğrencisi** tarafından geliştirilmiş açık kaynaklı bi
 
 -   **Geliştirici:** Ömer Çakan
     
--   **LinkedIn:** [Ömer Çakan](https://www.google.com/search?q=https://www.linkedin.com/in/%25C3%25B6mer-%25C3%25A7akan-819751261)
+-   **LinkedIn:** www.linkedin.com/in/ömer-çakan-819751261
     
--   **Destek:** Proje size yardımcı olduysa depoya bir ⭐ bırakmayı unutmayın!
-    
+-   **Destek:** Proje size yardımcı olduysa bir ⭐ bırakmayı unutmayın!
+- ### 3. Katılımcılara Özel Kod Talimatı
 
-### Katılımcılara Özel Kod Talimatı
-
-Kendi branch'inizi açın, ama `main` branch'ine dokunmayın:
+Kendi branch'inizi açın, ama benim `main`'ime dokunmayın."
 
 Bash
-
 ```
-# Projeyi indirin
-git clone [https://github.com/propaper12/An-Open-Source-Real-Time-Financial-Lakehouse-Project.git](https://github.com/propaper12/An-Open-Source-Real-Time-Financial-Lakehouse-Project.git)
-
-# Kendi adınıza yeni bir branch açın
-git checkout -b dev/isminiz_ve_ozellik
-
-# Geliştirmenizi yapın ve pushlayın
-git push origin dev/isminiz_ve_ozellik
-
+# 1. Önce projeyi kendi bilgisyarına indir ya da dırekt 
+github üzerinden indir
+git clone https://github.com/propaper12/An-Open-Source-Real-Time-Financial-Lakehouse-Project.git
+# 2. Kendi adınıza veya özelliğinize göre yeni bir branch açın
+git checkout -b dev/herhangi_isim
+# 3. Geliştirmenizi yapın ve sadece bu branch'e pushlayın
+git push origin dev/herhangi_isim
 ```
 ## 🤝 Projenin görselleri:
 <img width="1530" height="654" alt="Ekran görüntüsü 2026-02-05 174921" src="https://github.com/user-attachments/assets/d5e0de38-6b3d-4caf-aff0-bcbfeb7d27c6" />
