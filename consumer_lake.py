@@ -3,16 +3,20 @@ import os
 import sys
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, current_timestamp
-# Şema importlarını azalttık çünkü artık ham veri saklıyoruz
+
+# Bu modülü, Lakehouse mimarimizin ilk durağı olan Bronze (Raw) katmanını yönetmek üzere tasarladım.
+# Temel stratejim, Kafka'dan gelen veriyi şemasına bakmaksızın en saf haliyle (raw) depolamaktır.
 
 KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "kafka:9092")
 MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT", "http://minio:9000")
 ACCESS_KEY = os.getenv("MINIO_ROOT_USER")
 SECRET_KEY = os.getenv("MINIO_ROOT_PASSWORD")
 
-print(f"[CONSUMER] Generic Raw Data Ingestion Başlatılıyor...")
+print("Generic Raw Data Ingestion (Bronze Layer) sureci baslatiliyor...")
 
-# Spark Session kısmı:
+# Spark Session Yapılandırması:
+# Veri gölü (Data Lake) entegrasyonu için gerekli olan Delta Lake ve AWS S3A kütüphanelerini 
+# versiyon uyumluluklarını gözeterek oturuma dahil ettim.
 spark = SparkSession.builder \
     .appName("GenericBronzeIngestion") \
     .config("spark.jars.packages", 
@@ -36,7 +40,10 @@ spark = SparkSession.builder \
 spark.sparkContext.setLogLevel("ERROR")
 
 try:
-    # 1. Kafka'dan Oku (Ham binary olarak)
+    # 1. Veri Kaynagina Baglanti (Kafka Ingestion)
+    # Geriye dönük veri kaybını önlemek adına 'earliest' offset stratejisini belirledim.
+    # 'maxOffsetsPerTrigger' parametresi ile anlık veri patlamalarında (spike) 
+    # sistemin kaynak tüketimini kontrol altında tutmayı hedefledim.
     streamingDf = spark.readStream \
         .format("kafka") \
         .option("kafka.bootstrap.servers", KAFKA_BOOTSTRAP_SERVERS) \
@@ -46,18 +53,23 @@ try:
         .option("maxOffsetsPerTrigger", 1000) \
         .load()
 
-    # 2. "APTAL" TÜKETİCİ MANTIĞI (Dumb Consumer)
-    # Veriyi açıp içine bakma. Olduğu gibi string'e çevir ve sakla.
-    # Böylece IoT, Log, Crypto ne gelirse gelsin bozulmadan saklanır.
+    # 2. 'Dumb Consumer' (Aptal Tuketici) Mimarisi:
+    # Veri mühendisliğinde 'Schema-on-Read' prensibini desteklemek amacıyla 
+    # gelen JSON verisini burada ayrıştırmıyorum. 
+    # Bu tercih, sisteme IoT sensör verisi, sunucu logu veya borsa verisi gibi 
+    # farklı yapılarda veri gelse dahi ingestion katmanının asla hata almadan 
+    # çalışmaya devam etmesini saglar (Schema Agnostic).
     raw_df = streamingDf.select(
         col("key").cast("string").alias("kafka_key"),
-        col("value").cast("string").alias("raw_payload"), # <-- Bütün veri burada JSON String olarak duracak
+        col("value").cast("string").alias("raw_payload"), 
         col("timestamp").alias("ingest_time")
     )
 
-    # 3. Bronze Katmanına Yaz (Delta Lake)
-    # Not: partitionBy("symbol") KALDIRILDI çünkü symbol sütunu artık JSON içinde gizli.
-    # Bronze katmanı ham ve hızlı olmalı.
+    # 3. Bronze Katmanina Kayit (Delta Lake Persistence)
+    # Veriyi partition (bölümleme) yapmadan doğrudan Delta Lake formatında kaydediyorum.
+    # Bölümleme işlemini Silver katmanına bırakmamın sebebi, Bronze katmanının 
+    # olabildiğince hızlı ve 'stateless' kalmasını saglamaktır.
+    # Checkpoint mekanizması ile olası kesintilerde veri tutarlılığını garanti altına aldım.
     query = raw_df.writeStream \
         .format("delta") \
         .outputMode("append") \
@@ -66,9 +78,9 @@ try:
         .trigger(processingTime='5 seconds') \
         .start()
 
-    print(" Lakehouse Raw (Bronze) Katmanı: Her türlü veriyi kabul ediyor...")
+    print("Lakehouse Raw (Bronze) katmani akisi aktif. Her turlu veri formati kabul ediliyor.")
     query.awaitTermination()
 
 except Exception as e:
-    print(f"HATA: {e}")
+    print(f"Ingestion surecinde kritik hata: {e}")
     sys.exit(1)
