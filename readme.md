@@ -17,23 +17,26 @@
 </div>
 
 
-# Scalable Near Real-Time Lakehouse & Event-Driven MLOps Architecture
+# Enterprise Real-Time Lakehouse & MLOps Platform
 
-**Özetle Nedir?** Bu proje, yüksek hacimli veri akışlarını (streaming) yakalayan, işleyen ve Delta Lake üzerinde şema-bağımsız (schema-agnostic) olarak depolayan uçtan uca bir veri mühendisliği PoC (Proof of Concept) çalışmasıdır. Sistem, Spark Structured Streaming kullanarak ~5 saniyelik mikro-batch (micro-batch) aralıklarıyla veriyi işlerken, aynı zamanda arka planda event-driven bir AutoML pipeline'ı tetikleyerek sürekli öğrenme (continuous training) senaryolarını simüle eder.**
+**Özetle Nedir?** Bu proje; verinin üretildiği andan itibaren yakalanıp işlendiği, güvenli bir şekilde depolandığı, yapay zeka algoritmalarından geçirilerek gelecek tahminlerinin üretildiği ve tüm bu sürecin **sadece 5 saniye içerisinde** tamamlanıp ekranlara yansıtıldığı **uçtan uca (End-to-End) bir Veri Mühendisliği ve MLOps ekosistemidir.**
 
 Geleneksel veri projelerinin aksine statik bir yapıya sahip değildir. Sistem; sürekli akan veriyi dinler, yeterli veri biriktiğinde makine öğrenmesi modellerini kendi kendine eğitir (AutoML), veri kalitesini denetler (Data Quality Gate) ve altyapı sağlığını 7/24 izler.
 
+
 ### 🌟 Sistemin Öne Çıkan Özellikleri:
 
--   **⚡ Near Real-Time (NRT) Processing: Spark Structured Streaming ile uçtan uca veri işleme gecikmesi (latency) mikro-batch pencereleri optimize edilerek ~5 saniye seviyesinde tutulmuştur.
+-   **⚡ Gerçek Zamanlı Akış (Low Latency):** Verinin Binance WebSocket'ten alınıp, Spark ile işlenmesi, Inference API üzerinden tahminlenmesi ve TimescaleDB aracılığıyla Streamlit dashboard'a düşmesi arasındaki toplam gecikme süresi (End-to-End Latency) ortalama 5 saniyedir.
     
--   **🧬 Şema Bağımsız (Schema Agnostic) Veri Kabulü:** Sistem "Hardcoded" (sabit şemalı) değildir. Sadece kripto para verilerini değil; **Endüstriyel IoT Sensörleri, Sunucu Logları (CPU/RAM) veya Web Trafiği** gibi her türlü JSON verisini dinamik olarak tanır, işler ve Data Lake üzerinde kaynağına göre bölümlendirerek (Partitioned) arşivler.
+-   **🚀 Model-as-a-Service (MaaS) & RAM Optimizasyonu:** Spark üzerindeki ağır makine öğrenmesi yükü alınarak hafif ve bağımsız bir FastAPI çıkarım motoruna (`inference_api.py`) devredilmiştir. Bu sayede sistemin RAM tüketimi **%60 oranında (15 GB'tan 6 GB'a)** düşürülmüştür.
     
--   **🧠 Event-Driven AutoML (Shadow Mode): Veri gölünde (Data Lake) belirlenen hacme ulaşıldığında model eğitim süreçleri otomatik tetiklenir. Modeller MLflow Registry'de versiyonlanır. (Not: Üretim ortamındaki "Concept Drift" risklerine karşı tam otonom canlıya alım yerine, bir "Human-in-the-loop" veya "Shadow Mode" mantığı gözetilerek tasarlanmıştır.)
+-   **🧠 Gerçek Gelecek Tahmini (Data Leakage Fix):** Model eğitimi sırasında finansal projelerin en büyük kronik sorunu olan "veri sızıntısı" çözülmüştür. Algoritmalar o anki fiyatı değil, zamansal kaydırma (`shift(-1)`) tekniği ile tam olarak **bir sonraki periyodun (geleceğin)** fiyatını tahmin edecek şekilde yapılandırılmıştır.
     
--   **🐳 Containerized & Decoupled Architecture: Tüm bileşenler Docker Compose ile izole edilmiştir. Veri üreten, işleyen ve sunan katmanlar birbirinden bağımsızdır (Kubernetes deployment'a hazır mantıksal ayrım).
-<img width="2816" height="1504" alt="Gemini_Generated_Image_hn82lvhn82lvhn82" src="https://github.com/user-attachments/assets/3e4de52a-f56d-4885-b7f2-d8e7ee86cb03" />
-
+-   **🔄 Sıfır Kesinti ile Sürekli Dağıtım (Zero-Downtime CD):** Sistemin başında durmaya gerek yoktur. "ML Watcher" modülü veri havuzunu izler, modeli Pandas ve Scikit-Learn ile otonom eğitir, MLflow'a kaydeder ve canlıdaki API'ye ping atarak (`/reload`) sistemi durdurmadan yeni modeli anında devreye alır.
+    
+-   **🐳 %100 İzole ve Ölçeklenebilir Mimari:** Sistem, birbirine tam entegre çalışan **16+ farklı mikroservisten** oluşmaktadır. Tüm ortam Dockerize edilmiş olup tek bir komutla (`docker-compose up`) herhangi bir işletim sisteminde ayağa kalkabilir.
+- 
+<img width="2816" height="1536" alt="Architecture" src="https://github.com/user-attachments/assets/0d3cabf3-f35d-4d77-ad85-a01477a16265" />
 
 ---
 
@@ -63,33 +66,25 @@ Geleneksel veri projelerinin aksine statik bir yapıya sahip değildir. Sistem; 
 ├── ingestion_api.py            # Harici Şirketler İçin REST API (FastAPI)
 ├── consumer_lake.py            # Bronze Katman (Ham Veri Kaydedici - Delta)
 ├── process_silver.py           # Silver Katman & Canlı AI Tahmin Motoru (Spark)
+├── inference_api.py           	#FastAPI MaaS (Model-as-a-Service) Çıkarım Motoru
 ├── batch_processor.py          # CSV Toplu Veri İşleme Motoru
-├── train_model.py              # Spark MLlib AutoML Eğitim Fabrikası
-├── ml_watcher.py               # Otonom Model Tetikleyici (Event-Driven)
+├── train_model.py              # Scikit-Learn + Pandas AutoML Eğitim Fabrikası
+├── ml_watcher.py               # Otonom Model Tetikleyici & Hot Reload (CD)
 ├── quality_gate.py             # Veri Kalite ve Sağlık Kapısı (Data Guard)
 └── prometheus.yml              # Altyapı İzleme Konfigürasyonu
 ```
+
+
 ## 🏗️ Mimari Tasarım (Architecture)
 Sistem, veri mühendisliği ve MLOps standartlarına uygun olarak tasarlanmış olup, her bir Python modülü belirli bir kurumsal zorluğu (bottleneck) aşmak üzere kodlanmıştır:
 
-#### 1. Veri Girişi ve API (Ingestion Layer)
+#### 1. Veri Girişi ve Mesajlaşma (Ingestion Layer)
 
 -   **`producer.py` (Binance WebSocket Connector):**
     
     -   **Heartbeat & Resilience:** Ağ kopmalarına karşı `ws.run_forever(ping_interval=70, ping_timeout=10)` kullanılarak bağlantının canlı kalması sağlanmıştır.
         
     -   **Kafka Optimizasyonu:** Band genişliği tasarrufu için `compression_type='gzip'` kullanılmıştır. Olası broker kesintilerinde veri kaybını önlemek için `retries=5` ve hız/güvenlik dengesi için `acks=1` (Leader Acknowledgement) yapılandırması mevcuttur.
-        
--   **`ingestion_api.py` (Universal API Gateway):**
-    
-    -   **Asenkron Mimari:** FastAPI kullanılarak `async def` uç noktaları tasarlanmış, binlerce anlık HTTP `POST` isteğini bloklamadan karşılayacak altyapı kurulmuştur.
-        
-    -   **Singleton Pattern:** Kafka bağlantısının her istekte yeniden açılıp sistemi yormaması için `get_kafka_producer()` fonksiyonunda Singleton tasarım deseni uygulanmıştır.
-        
--   **`universal_producer.py` (Polymorphic Generator):**
-    
-    -   **Schema-Agnostic Veri Üretimi:** Sistem sadece kripto paraya bağımlı değildir. Borsa, IoT Sensörleri, Sunucu Metrikleri ve Web Trafiği gibi farklı veri yapılarını tek bir modül üzerinden dinamik olarak (`math.sin`, `random.uniform` ile) simüle edip Kafka'ya basar.
-        
 
 #### 2. Veri İşleme ve Storage (Processing & Lakehouse)
 
@@ -99,48 +94,51 @@ Sistem, veri mühendisliği ve MLOps standartlarına uygun olarak tasarlanmış 
         
     -   **Backpressure (Geri Basınç) Yönetimi:** `maxOffsetsPerTrigger=1000` parametresi ile anlık veri patlamalarında (Spike) Spark motorunun çökmesi engellenmiştir.
         
--   **`process_silver.py` (Silver Layer & In-Flight AI):**
+-   **`process_silver.py` (API-Driven Spark Streaming):**
     
-    -   **Sliding Window & Watermarking:** Geç gelen verilerin sistemi bozmasını engellemek için `.withWatermark("timestamp", "1 minute")` kullanılmıştır. Veriler 30 saniyelik pencerelerde `stddev_pop` fonksiyonu ile gruplanarak canlı volatilite hesaplaması yapılır.
+    -   **Hafifletilmiş Spark Engine:** Diskten model okumaya çalışan hantal MLlib kodları sistemden sökülmüştür. Spark artık sadece 30 saniyelik pencerelerde (Sliding Window) 7-boyutlu özellik vektörlerini hesaplar ve tahmin için veriyi `requests.post` ile anlık olarak Inference API'ye yollar.
         
-    -   **In-Flight Prediction & Model Caching:** Canlı akış sırasında, MinIO'dan en son eğitilen ML modelleri `get_model_for_symbol` ile belleğe (Cache) alınır ve Spark DataFrame üzerinden `VectorAssembler` ile 7-boyutlu bir özellik vektörüne dönüştürülüp anlık fiyat tahmini yapılır.
+    -   **Pandas 2.0+ Zırhı:** PySpark ve Pandas 2.0 arasındaki `datetime64[ns]` çökme hatasını (Bug) engellemek için, tarihler DataFrame'e girmeden önce `cast("string")` ile güvenli bir formata dönüştürülmüştür.
         
     -   **Polyglot Persistence:** İşlenmiş veri, asenkron `foreachBatch` döngüsü içinde hem MinIO'ya (Analitik için Delta Lake `append` modu), hem de Streamlit paneli için **TimescaleDB**'ye (PostgreSQL Hypertable JDBC) eşzamanlı yazılır.
         
 -   **`batch_processor.py` (ETL & Sanitization):**
     
     -   **Data Sanitization:** Geçmişe dönük yüklenen CSV'lerdeki hatalı ve Türkçe karakterleri, Regex (`re.sub`) tabanlı `clean_column_name` fonksiyonu ile DB formatına otonom olarak uyarlar.
-        
 
-#### 3. MLOps ve Otomasyon (AI Orchestration)
+#### 3. Çıkarım, MLOps ve Otomasyon (Inference & AI Orchestration)
 
--   **`ml_watcher.py` (Event-Driven Orchestrator):**
+-   **`inference_api.py` (FastAPI MaaS Engine):**
     
-    -   **Lightweight Querying:** Spark motorunu gereksiz yere ayağa kaldırmamak için doğrudan `deltalake` kütüphanesini (Rust tabanlı) kullanarak MinIO'ya bağlanır ve maliyetsiz satır sayımı (`len(dt.to_pandas())`) yapar.
-        
-    -   **Subprocess Management:** Belirlenen eşik (Threshold) aşıldığında `train_model.py` dosyasını alt süreç (Subprocess) olarak tetikler. "Avcı" (Hunter) ve "Devriye" (Patrol) modları ile sistem kaynaklarını tüketmeden arka planda sürekli veri durumunu denetler.
-        
--   **`train_model.py` (Spark MLlib AutoML):**
+    -   **Model-as-a-Service:** Spark'tan bağımsız çalışan hafif çıkarım motorudur. MLflow'dan "Production" etiketli modeli çeker, Singleton mimarisiyle RAM'de önbellekler (Cache) ve gelen verilere milisaniyeler içinde cevap verir.
+
+-   **`ml_watcher.py` (Continuous Deployment Orchestrator):**
     
-    -   **Time-Series Split (Veri Sızıntısı Koruması):** Makine öğrenmesinde klasik Random Split kullanmak finansal verilerde sızıntıya (Data Leakage) yol açar. Bu modülde `Window.orderBy("processed_time")` ve `row_number()` fonksiyonları kullanılarak veri kronolojik olarak %80 Eğitim / %20 Test olacak şekilde profesyonelce ayrıştırılır.
+    -   **Zero-Downtime Hot Reload:** Eğitim bitip model MLflow'a yüklendikten sonra, canlıdaki API'ye `requests.post("http://inference_api:8001/reload")` isteği atarak "RAM'ini temizle, yeni modeli çek" talimatı verir. Sistem asla kapanmaz.
         
-    -   **AutoML League:** ElasticNet, DecisionTree, RandomForest ve GBTRegressor algoritmalarını paralel döngüde çalıştırıp yarıştırır. En düşük RMSE değerini alanı `best_model` seçer ve MLflow Registry'ye kaydeder.
+    -   **Lightweight Querying:** Spark motorunu gereksiz yere ayağa kaldırmamak için doğrudan `deltalake` kütüphanesini (Rust tabanlı) kullanarak MinIO'ya bağlanır ve maliyetsiz satır sayımı (`len(dt.to_pandas())`) yapar. "Avcı" ve "Devriye" modları ile eğitimi tetikler.
         
+-   **`train_model.py` (Pandas & Scikit-Learn Training Factory):**
+    
+    -   **Rust Tabanlı Okuma:** Ağır Spark (MLlib) okumaları tamamen kaldırılmış, MinIO'dan ışık hızında okuma yapmak için `deltalake` (Rust) gücü kullanılmıştır.
+        
+    -   **Data Leakage Fix (Veri Sızıntısı Koruması):** Modelin o anki fiyatı tahmin etme hatası, bağımlı değişkene `df['average_price'].shift(-1)` uygulanarak tamamen çözülmüş, makine öğrenmesinin gerçek geleceği öğrenmesi sağlanmıştır.
+        
+    -   **AutoML League & Registry:** Zaman serisi kuralına uygun olarak %80/%20 ayrılan veri seti üzerinde RandomForest ve GradientBoosting algoritmalarını yarıştırır. En düşük RMSE değerini alanı MLflow'a kaydeder ve versiyonu otomatik olarak `Production` aşamasına geçirir.
 
 #### 4. İzleme, Kalite ve DevOps (Observability & Data Quality)
 
 -   **`quality_gate.py` (Offline Data Quality Gate):**
     
-    -   Büyük veri projelerindeki _"Garbage In, Garbage Out"_ (Çöp giren çöp çıkar) riskine karşı devre kesici olarak yazılmıştır. Delta Lake'i Spark ile okuyup; sıfırın altındaki fiyatları, null (eksik) volatilite değerlerini ve bozuk zaman damgalarını tarayıp terminale/loglara CI/CD tarzı PASS/FAIL raporu basar.
+    -   Büyük veri projelerindeki *"Garbage In, Garbage Out"* (Çöp giren çöp çıkar) riskine karşı devre kesici olarak yazılmıştır. Delta Lake'i okuyup; sıfırın altındaki fiyatları, null (eksik) volatilite değerlerini ve bozuk zaman damgalarını tarayıp terminale/loglara CI/CD tarzı PASS/FAIL raporu basar.
         
 -   **`_Sistem_Yonetimi.py` & Streamlit Stack (Control Plane):**
     
-    -   **Docker SDK Integration:** `docker.from_env()` kullanılarak Python içinden doğrudan Docker soketine bağlanılır. Kullanıcı, arayüz üzerinden Spark konteynerine `exec_run` ile komut (örn: `maintenance_job.py`) gönderebilir veya konteyner loglarını canlı çekebilir.
+    -   **Docker SDK Integration:** `docker.from_env()` kullanılarak Python içinden doğrudan Docker soketine bağlanılır. Kullanıcı, arayüz üzerinden Spark konteynerine komut göndererek Delta Lake üzerinde bakım (`Optimize` ve `Vacuum`) işlemlerini tetikleyebilir.
         
     -   **Host Telemetry:** `psutil` kütüphanesi entegrasyonu ile dashboard üzerinden sunucunun anlık CPU, RAM ve Disk kullanımı izlenebilir.
         
     -   **Failover Mechanism (`utils.py`):** MLflow servisine bağlanırken önce dış DNS (`http://mlflow_server:5000`), başarısız olursa internal Docker köprüsü (`http://host.docker.internal:5000`) denenerek hata toleranslı (Fault-tolerant) bir yapı kurulmuştur.
-----------
 
 ## 🛠️ Kurulum ve Çalıştırma Rehberi (DevOps Command Center)
 
