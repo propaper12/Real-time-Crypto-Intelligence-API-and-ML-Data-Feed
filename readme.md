@@ -344,7 +344,6 @@ Kendi özelliklerinizi eklemek için aşağıdaki iş akışını takip edebilir
     
 4.  **Push ve PR:** Geliştirmenizi pushlayın ve bir Pull Request oluşturun.
 
-```
 ## 🤝 Projenin görselleri:
 <img width="1530" height="654" alt="Ekran görüntüsü 2026-02-05 174921" src="https://github.com/user-attachments/assets/d5e0de38-6b3d-4caf-aff0-bcbfeb7d27c6" />
 <img width="2790" height="1415" alt="Ekran görüntüsü 2026-02-05 171703" src="https://github.com/user-attachments/assets/f86b504f-9564-41b1-8b5a-86956aba1515" />
