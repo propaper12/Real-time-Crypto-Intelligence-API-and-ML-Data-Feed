@@ -43,10 +43,10 @@ echo  ║  [10] 🎯 Toplu Model Egitimi (Tumu)  ║  [15] 📋 Canli Loglari Iz
 echo  ║  [11] 🧪 Spesifik Coin Egitimi       ║  [16] 🔗 Sistem Portallari / UI  ║
 echo  ║  [12] 👁️ ML Watcher'i Baslat         ║  [17] 📊 CPU/RAM/Network Izle    ║
 echo  ║  [13] 🧹 Postgres Temizle (Gold)     ║  [18] 🚪 Sistemden Cikis         ║
-echo  ║  [14] 🗑️  MinIO Temizle (Delta)      ║                                  ║
+echo  ║  [14] 🗑️  MinIO Temizle (Delta)      ║  [19] ⏳ Gecmis Veri (2Y ve 10Y) ║
 echo  ╚══════════════════════════════════════╩══════════════════════════════════╝
 echo.
-set /p secim="  [root@lakehouse]~# Komut Girin (1-18): "
+set /p secim="  [root@lakehouse]~# Komut Girin (1-19): "
 
 if "%secim%"=="1" goto START_SYS
 if "%secim%"=="2" goto STOP_SYS
@@ -70,6 +70,7 @@ if "%secim%"=="15" goto READ_LOGS
 if "%secim%"=="16" goto LINKS
 if "%secim%"=="17" goto RESOURCE_MONITOR
 if "%secim%"=="18" exit
+if "%secim%"=="19" goto FETCH_HISTORY
 
 goto MENU
 
@@ -225,6 +226,17 @@ echo  [ 🔗 SISTEM LINKLERI ]
 echo  📊 Dashboard: http://localhost:8501
 echo  🗄️ MinIO: http://localhost:9001
 echo  📨 Kafka: http://localhost:9010
+echo.
+pause
+goto MENU
+
+:FETCH_HISTORY
+cls
+echo.
+echo  [ ⏳ BATCH ETL ] Yfinance uzerinden 2 Yillik (Saatlik) ve 10 Yillik (Gunluk) veriler cekiliyor...
+echo  Bu islem internet hiziniza bagli olarak 1-2 dakika surebilir. Lutfen bekleyin...
+echo  ──────────────────────────────────────────────────────────────────
+docker exec -it spark-silver python /app/batch_yfinance_etl.py
 echo.
 pause
 goto MENU
