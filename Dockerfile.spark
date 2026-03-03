@@ -19,7 +19,8 @@ RUN pip install --no-cache-dir \
     psycopg2-binary \
     mlflow \
     scikit-learn \
-    python-dotenv
+    python-dotenv\
+    yfinance
 
 # 3. JAR DOSYALARI (Kafka, S3, Delta ve Postgres Bağlantıları)
 RUN mkdir -p /opt/spark-jars

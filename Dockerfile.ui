@@ -25,7 +25,8 @@ RUN pip install --no-cache-dir \
     psutil \
     watchdog \
     python-dotenv\
-    kafka-python
+    kafka-python\
+    deltalake
 
 COPY . /app/
 
