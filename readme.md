@@ -47,13 +47,13 @@ Geleneksel veri projelerinin aksine statik bir yapıya sahip değildir. Sistem; 
 │   ├── Home.py                 # Ana Komuta Merkezi
 │   ├── utils.py                # CSS ve Veritabanı/S3 Cache Ayarları
 │   ├── _Canli_Piyasa.py        # Canlı Fiyat ve İndikatör Takibi
-│   ├── _Batch_Yukleme.py       # Geçmiş Veri (CSV) Upload Modülü
+│   ├── Gecmis_Analiz.py        # Geçmiş Veri (CSV) Upload Modülü
 │   ├── _Harici_Baglanti.py     # Universal Data Gateway Arayüzü
 │   ├── _MLOps_Center.py        # MLflow AutoML Liderlik Tablosu
 │   ├── _Sistem_Yonetimi.py     # Enterprise Control Plane & Log İzleme
 │   └── KAFDROP.py              # Kafka Universal Data Deck
 ├── dbt_project/                # Veri Dönüşüm Katmanı (DBT)
-├── start_windows.bat           # 🚀 Windows DevOps Command Center (Otomasyon)
+├── start_windows.bat           # Windows DevOps Command Center (Otomasyon)
 ├── tests/                      # Birim Testleri (Unit Tests) 
 │   └── test_core.py            # Çekirdek Sistem Testleri (Pytest)
 ├── .env                        # Çevresel Değişkenler (Şifreler & Ayarlar)
@@ -67,7 +67,7 @@ Geleneksel veri projelerinin aksine statik bir yapıya sahip değildir. Sistem; 
 ├── consumer_lake.py            # Bronze Katman (Ham Veri Kaydedici - Delta)
 ├── process_silver.py           # Silver Katman & Canlı AI Tahmin Motoru (Spark)
 ├── inference_api.py           	#FastAPI MaaS (Model-as-a-Service) Çıkarım Motoru
-├── batch_processor.py          # CSV Toplu Veri İşleme Motoru
+├── batch_user_processor.py     # Yfinance Toplu Veri İşleme Motoru
 ├── train_model.py              # Scikit-Learn + Pandas AutoML Eğitim Fabrikası
 ├── ml_watcher.py               # Otonom Model Tetikleyici & Hot Reload (CD)
 ├── quality_gate.py             # Veri Kalite ve Sağlık Kapısı (Data Guard)
@@ -338,6 +338,12 @@ Sistem ayağa kalktıktan sonra aşağıdaki linklerden tüm ekosistemi yöneteb
 2.  **🗄️ Multi-Tenant Data Lake Storage:** MinIO üzerindeki Delta Lake dosyaları rastgele tutulmaz, kaynağına göre otomatik Partitioned (Bölümlenmiş) olarak saklanır (`source=binance`, vb.).
     
 3.  **🛡️ Otonom Bakım (Maintenance Job):** Streamlit yönetim panelinden "Delta Lake Bakım Motoru" çalıştırılarak S3 üzerindeki küçük parçalı dosyalar birleştirilir (Optimize) ve çöpler temizlenir (Vacuum).
+4.  -   **🏛️ Lambda Mimarisi (Batch + Speed Layer):** Sistem sadece saniyelik akan veriyi (Streaming) değil, aynı zamanda 10 yıllık devasa geçmiş veriyi de (Batch) yönetebilecek şekilde Lambda mimarisine yükseltilmiştir. 
+    
+5.   **🦀 Rust Tabanlı ETL & Lakehouse Partitioning:** Geçmiş 10 yıllık borsa verileri (100.000+ satır), JVM/Spark maliyetine girilmeden doğrudan Rust tabanlı `deltalake` kütüphanesi ile çekilmiş ve MinIO (S3) üzerine `partition_by=["symbol", "year"]` mantığıyla (Yıl ve Sembol bazlı bölümlenerek) yazılmıştır.
+    
+6.  **⚡ Predicate Pushdown ile Optimize UI:** Streamlit arayüzündeki "Geçmiş Veri Analizi" modülü, PostgreSQL'i (Operasyonel DB) kesinlikle yormaz. Kullanıcı bir sorgu attığında, S3 üzerindeki sadece ilgili yılın ve coinin klasörünü okuyarak (Predicate Pushdown) devasa veriyi milisaniyeler içinde RAM'e alır ve önbellekler (Caching).
+   
     
 
 ----------
