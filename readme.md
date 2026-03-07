@@ -1,4 +1,4 @@
-<img width="2879" height="1530" alt="Ekran görüntüsü 2026-03-05 161743" src="https://github.com/user-attachments/assets/e8480dd7-0c9b-485f-b542-47a96ad13c0f" /><div align="center"> 
+<div align="center"> 
   <img src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white" /> 
   <img src="https://img.shields.io/badge/Apache_Spark-E25A1C?style=for-the-badge&logo=apache-spark&logoColor=white" /> 
   <img src="https://img.shields.io/badge/Apache_Kafka-231F20?style=for-the-badge&logo=apache-kafka&logoColor=white" /> 
@@ -623,7 +623,7 @@ _© 2026 RadarPro Ecosystem - Real-Time Intelligence for Everyone._
 ## 🤝 Projenin görselleri:
 
 
-
+<img width="2879" height="1530" alt="Ekran görüntüsü 2026-03-05 161743" src="https://github.com/user-attachments/assets/e8480dd7-0c9b-485f-b542-47a96ad13c0f" />
 ![Uplo<img width="2783" height="1545" alt="Ekran görüntüsü 2026-03-05 162814" src="https://github.com/user-attachments/assets/54d68605-2c1b-4328-9593-1d64399c24b0" />
 ading Ekran g<img width="2792" height="1537" alt="Ekran görüntüsü 2026-03-05 162932" src="https://github.com/user-attachments/assets/9fb3cc13-a4c0-4b9c-8b9a-fbdc352991c3" />
 <img width="2790" height="1536" alt="Ekran görüntüsü 2026-03-05 162940" src="https://github.com/user-attachments/assets/0a9a6676-b610-44f3-b06b-3dacbe7043b3" />
