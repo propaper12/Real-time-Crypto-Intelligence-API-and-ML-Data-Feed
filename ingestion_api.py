@@ -14,6 +14,8 @@ from datetime import datetime
 import bcrypt
 import yfinance as yf
 import copy
+import google.generativeai as genai
+
 # ==============================================================================
 # 🚀 RADAR GLOBAL - ENTERPRISE DATA GATEWAY (V11.6 SAAS EDITION)
 # ==============================================================================
@@ -140,7 +142,6 @@ async def register_user(user: UserRegister, request: Request):
     client_ip = request.client.host if request.client else "unknown"
     r = app.state.redis
     
-    # GÜZELLEŞTİRME: Exception fırlatmak yerine frontend'e hatayı okutuyoruz
     if r:
         reg_count = await r.get(f"reg_ip:{client_ip}")
         if reg_count and int(reg_count) >= 3:
@@ -207,9 +208,7 @@ async def admin_update_tier(data: TierUpdate):
         await conn.execute("UPDATE api_users SET tier = $1 WHERE email = $2", data.new_tier, data.email)
     return {"status": "success"}
 
-# ==============================================================================
 # 🔑 ZERO-TRUST SECURITY 
-# ==============================================================================
 async def verify_api_key(api_key_header: str = Security(api_key_header)):
     if not api_key_header: raise HTTPException(status_code=401, detail="API Anahtarı Eksik!")
     if not app.state.db_pool: raise HTTPException(status_code=500, detail="DB Bağlantısı Yok.")
@@ -221,6 +220,64 @@ async def verify_api_key(api_key_header: str = Security(api_key_header)):
     
     await check_redis_limit(user['email'], user['tier'])
     return dict(user)
+
+
+# ==============================================================================
+# ⚙️ SETTINGS.HTML İÇİN EKSİK UÇ NOKTALAR (PROFİL, ŞİFRE, KEY YENİLEME)
+# ==============================================================================
+@app.get("/api/v1/auth/me")
+async def get_my_profile(user: dict = Security(verify_api_key)):
+    r = app.state.redis
+    usage = 0
+    limit = 1000
+    
+    if user['tier'] == 'FREE' and r:
+        today = datetime.now().strftime("%Y-%m-%d")
+        limit_key = f"limit:free:{user['email']}:{today}"
+        usage_str = await r.get(limit_key)
+        usage = int(usage_str) if usage_str else 0
+        
+    return {
+        "status": "success",
+        "data": {
+            "username": user['username'],
+            "email": user['email'],
+            "tier": user['tier'],
+            "usage": usage,
+            "limit": limit
+        }
+    }
+
+@app.post("/api/v1/auth/update_profile")
+async def update_profile(data: ProfileUpdate, user: dict = Security(verify_api_key)):
+    if not app.state.db_pool: raise HTTPException(status_code=500, detail="DB Bağlantısı Yok.")
+    async with app.state.db_pool.acquire() as conn:
+        existing = await conn.fetchrow("SELECT username FROM api_users WHERE username = $1 AND email != $2", data.username, user['email'])
+        if existing:
+            return {"status": "error", "message": "Bu kullanıcı adı zaten alınmış!"}
+        
+        await conn.execute("UPDATE api_users SET username = $1 WHERE email = $2", data.username, user['email'])
+    return {"status": "success", "message": "Profil güncellendi!", "new_username": data.username}
+
+@app.post("/api/v1/auth/change_password")
+async def change_password(data: PasswordChange, user: dict = Security(verify_api_key)):
+    if not app.state.db_pool: raise HTTPException(status_code=500, detail="DB Bağlantısı Yok.")
+    async with app.state.db_pool.acquire() as conn:
+        record = await conn.fetchrow("SELECT password_hash FROM api_users WHERE email = $1", user['email'])
+        if not record or not verify_password(data.current_password, record['password_hash']):
+            return {"status": "error", "message": "Mevcut şifre hatalı!"}
+        
+        new_hashed = hash_password(data.new_password)
+        await conn.execute("UPDATE api_users SET password_hash = $1 WHERE email = $2", new_hashed, user['email'])
+    return {"status": "success", "message": "Şifreniz başarıyla değiştirildi."}
+
+@app.post("/api/v1/auth/revoke_key")
+async def revoke_api_key(user: dict = Security(verify_api_key)):
+    if not app.state.db_pool: raise HTTPException(status_code=500, detail="DB Bağlantısı Yok.")
+    new_api_key = f"sk_live_{secrets.token_urlsafe(32)}"
+    async with app.state.db_pool.acquire() as conn:
+        await conn.execute("UPDATE api_users SET api_key = $1 WHERE email = $2", new_api_key, user['email'])
+    return {"status": "success", "message": "Anahtar yenilendi.", "new_api_key": new_api_key}
 
 # ==============================================================================
 # 📊 YFINANCE PROXY - SADECE FREE TIER KULLANABİLİR
@@ -268,7 +325,6 @@ async def download_market_data(user: dict = Security(verify_api_key)):
     if tier == 'FREE':
         raise HTTPException(status_code=403, detail="FREE paket sahipleri veritabanı dökümü alamaz.")
 
-    # 🕒 PREMIUM 12 Saat, VIP 24 Saat sınırı
     time_limit = "12 hours" if tier == "PREMIUM" else "24 hours"
     
     async def iter_csv():
@@ -283,7 +339,6 @@ async def download_market_data(user: dict = Security(verify_api_key)):
                     ORDER BY processed_time DESC
                 """
                 async for row in conn.cursor(query):
-                    # 🔒 PREMIUM ise AI verilerini (Tahmin ve Yön) gizliyoruz
                     p_val = "HIDDEN" if tier == "PREMIUM" else row['predicted_price']
                     s_val = "HIDDEN" if tier == "PREMIUM" else row['trade_side']
                     
@@ -311,7 +366,6 @@ async def get_market_data(symbol: str, user: dict = Security(verify_api_key)):
         
         record_dict = dict(record)
         
-        # PREMIUM ise AI kolonlarını temizle
         if tier == 'PREMIUM':
             for key in ['predicted_price', 'is_buyer_maker', 'trade_side', 'cvd']:
                 record_dict.pop(key, None)
@@ -319,14 +373,12 @@ async def get_market_data(symbol: str, user: dict = Security(verify_api_key)):
 
         return {"status": "success", "tier": "VIP", "data": record_dict}
 
-
 # ==============================================================================
 # 🚀 ENTERPRISE PUB/SUB WEBSOCKET (SADECE VIP VE PREMIUM)
 # ==============================================================================
 
 class ConnectionManager:
     def __init__(self):
-        # { "BTCUSDT": [ (ws, tier), ... ] }
         self.active_connections: dict[str, list[tuple[WebSocket, str]]] = {}
 
     async def connect(self, websocket: WebSocket, symbol: str, tier: str):
@@ -346,21 +398,16 @@ class ConnectionManager:
             for websocket, tier in self.active_connections[symbol]:
                 try:
                     if tier == 'PREMIUM':
-                        # Verinin kopyasını alıyoruz (VIP'ninkini bozmamak için)
                         import copy
                         payload = copy.deepcopy(message)
-                        
-                        # VIP'ye özel olan tüm 'yasaklı' alanları siliyoruz
-                        # Hem 'data' içinde hem de ana objede arıyoruz
                         restricted = ['predicted_price', 'trade_side', 'cvd', 'is_buyer_maker']
                         
                         if 'data' in payload:
                             for key in restricted:
-                                payload['data'].pop(key, None) # Varsa siler, yoksa hata vermez
+                                payload['data'].pop(key, None) 
                         
                         await websocket.send_json(payload)
                     else:
-                        # 💎 VIP her şeyi olduğu gibi alır
                         await websocket.send_json(message)
                 except Exception as e:
                     print(f"🔴 Yayın Hatası: {e}")
@@ -368,7 +415,6 @@ class ConnectionManager:
 
 manager = ConnectionManager()
 
-# TEK BİR WEBSOCKET ENDPOINT BIRAK:
 @app.websocket("/api/v1/stream/{symbol}")
 async def stream_live_data(websocket: WebSocket, symbol: str, api_key: str = Query(None)):
     if not api_key: return await websocket.close(code=1008)
@@ -376,7 +422,6 @@ async def stream_live_data(websocket: WebSocket, symbol: str, api_key: str = Que
     async with app.state.db_pool.acquire() as conn:
         user = await conn.fetchrow("SELECT tier FROM api_users WHERE api_key = $1", api_key)
         
-        # Sadece PREMIUM ve VIP girebilir
         if not user or user['tier'] not in ['PREMIUM', 'VIP']:
             await websocket.accept()
             await websocket.send_json({"error": "ERİŞİM REDDEDİLDİ!"})
@@ -399,7 +444,6 @@ async def consume_kafka_and_broadcast():
             )
             await consumer.start()
             async for msg in consumer:
-                # Gelen veriyi 'data' anahtarı içine hapsediyoruz ki filtreleme kolaylaşsın
                 full_payload = {"type": "LIVE_STREAM", "data": msg.value}
                 symbol = msg.value.get("symbol", "").upper()
                 
@@ -410,3 +454,80 @@ async def consume_kafka_and_broadcast():
             await asyncio.sleep(3)
         finally:
             await consumer.stop()
+
+# ==============================================================================
+# 🧠 RADARPRO AI - GEMINI 1.5 FLASH (REAL-TIME RAG AGENT)
+# Sadece VIP ve PREMIUM Kullanabilir
+# ==============================================================================
+
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+if GEMINI_API_KEY:
+    genai.configure(api_key=GEMINI_API_KEY)
+    ai_model = genai.GenerativeModel('gemini-2.5-flash')
+else:
+    print("⚠️ GEMINI_API_KEY bulunamadı! AI özellikleri çalışmayacak.")
+    ai_model = None
+
+class AIQuestion(BaseModel):
+    symbol: str
+    question: str
+
+@app.post("/api/v1/ask_ai")
+async def ask_radar_ai(payload: AIQuestion, user: dict = Security(verify_api_key)):
+    if not ai_model:
+        raise HTTPException(status_code=503, detail="AI Pasif (Key Eksik).")
+
+    tier = user['tier']
+    if tier == 'FREE':
+        raise HTTPException(status_code=403, detail="AI sadece Üst Paketlerde aktiftir.")
+
+    r = app.state.redis
+    symbol_upper = payload.symbol.upper()
+
+    # 1. Veri Toplama: V12 GOD MODE Metriklerini Çekiyoruz
+    current_state = "Veri Yok"
+    if r:
+        # Spark'ın V12'de yazdığı yeni anahtarı okuyoruz
+        cached = await r.get(f"GOD_MODE_{symbol_upper}") 
+        if cached:
+            c = json.loads(cached)
+            # Token tasarrufu: Virgüllü sayıları ve gereksiz metinleri temizleyip veriyoruz
+            current_state = (
+                f"Fiyat:{c.get('p')} CVD:{c.get('cvd'):.0f} "
+                f"VPIN:{c.get('vpin'):.2f} Imb:{c.get('imb'):.2f} "
+                f"Liq:{c.get('liq'):.0f} FR:{c.get('fr'):.5f}"
+            )
+
+    # 2. Sistem Promptu: Ekonomik, Sert ve Net
+    # Markdown'ı yasaklayarak ve kelime sınırı koyarak token maliyetini %70 düşürüyoruz.
+    system_prompt = f"""
+    Sen RadarPro Finans Analistisin. 
+    Veriler: {symbol_upper} -> {current_state}
+    
+    KURALLAR:
+    1. Asla yatırım tavsiyesi verme.
+    2. Markdown (*, #, b) kullanma. Sadece düz metin.
+    3. Yanıtın 30 kelimeyi asla geçmesin. Çok kısa ve öz ol.
+    4. VPIN > 0.8 ise 'volatilite patlaması', Imbalance > 4 ise 'sahte baskı' uyarısı yap.
+    
+    Soru: {payload.question}
+    """
+
+    try:
+        # Temperature 0.3: Daha tutarlı ve ciddi analizler için
+        response = await ai_model.generate_content_async(
+            system_prompt,
+            generation_config={"temperature": 0.3, "max_output_tokens": 100}
+        )
+        
+        return {
+            "status": "success",
+            "symbol": symbol_upper,
+            "ai_response": response.text.strip()
+        }
+    except Exception as e:
+        print(f"🔴 AI Error: {e}")
+        raise HTTPException(status_code=500, detail="Yapay zeka şu an meşgul.")
+# ==============================================================================
+# DOSYA SONU
+# ==============================================================================

@@ -1,7 +1,6 @@
 version: '3.8'
 
 services:
-  # 1. ZOOKEEPER
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
     container_name: zookeeper
@@ -15,7 +14,6 @@ services:
         limits:
           memory: 384m
 
-  # 2. KAFKA
   kafka:
     image: confluentinc/cp-kafka:7.5.0
     container_name: kafka
@@ -35,7 +33,6 @@ services:
     volumes:
       - kafka_data:/bitnami/kafka      
 
-  # 3. MINIO (Lakehouse Storage)
   minio:
     image: minio/minio:latest
     container_name: minio
@@ -51,7 +48,6 @@ services:
         limits:
           memory: 512m
 
-  # 4. PRODUCER (BINANCE DATA)
   producer:
     build:
       context: .
@@ -68,7 +64,6 @@ services:
         limits:
           memory: 256m
 
-  # 5. SPARK CONSUMER (BRONZE LAYER)
   spark-consumer:
     build:
       context: .
@@ -90,7 +85,6 @@ services:
         limits:
           memory: 1g
 
-  # 6. SPARK SILVER (PROCESSING LAYER)
   spark-silver:
     build:
       context: .
@@ -115,7 +109,6 @@ services:
           memory: 2g
           cpus: '1.5'
 
-  # 7. ML TRAINER (AUTO-ML ORCHESTRATOR)
   ml-trainer:
     build:
       context: .
@@ -135,7 +128,6 @@ services:
         limits:
           memory: 1g
 
-  # 8. DASHBOARD (STREAMLIT UI)
   dashboard:
     build:
       context: .
@@ -161,7 +153,6 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./dashboard_app:/app/dashboard_app
       
-  # 9. TIMESCALEDB (Gelişmiş Time-Series PostgreSQL)
   postgres:
     image: timescale/timescaledb-ha:pg15
     container_name: postgres
@@ -176,7 +167,6 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
-  # 10. DBT (Batch İşlemler İçin)
   dbt:
     build: ./dbt_project
     container_name: dbt_transformer
@@ -195,7 +185,6 @@ services:
         limits:
           memory: 256m
 
-  # 11. API GATEWAY
   api-gateway:
     build:
       context: .
@@ -213,57 +202,6 @@ services:
         limits:
           memory: 256m
 
-  # 12. CADVISOR (Konteyner Kaynak İzleyici)
-  #cadvisor:
-   # image: gcr.io/cadvisor/cadvisor:latest
-    #container_name: cadvisor
-    #ports:
-     # - "8090:8080"
-    #volumes:
-     # - /:/rootfs:ro
-     # - /var/run:/var/run:ro
-     # - /sys:/sys:ro
-     # - /var/lib/docker/:/var/lib/docker:ro
-     # - /dev/disk/:/dev/disk:ro
-    #networks:
-     # - data-network
-  # 13. PROMETHEUS (Metrik Veritabanı)
-  #prometheus:
-   # image: prom/prometheus:latest
-    #container_name: prometheus
-    #ports:
-     # - "9090:9090"
-    #volumes:
-     # - ./prometheus.yml:/etc/prometheus/prometheus.yml
-    #command:
-     # - '--config.file=/etc/prometheus/prometheus.yml'
-      #- '--storage.tsdb.retention.time=2h' # Sadece son 2 saati tut, RAM'i koru!
-    #depends_on:
-     # - cadvisor
-    #networks:
-     # - data-network
-    #deploy:
-     # resources:
-      #  limits:
-       #   memory: 250M # 512m çoktu, 250m yeterli
-
-  # 14. GRAFANA (Görselleştirme Paneli)
-  #grafana:
-   # image: grafana/grafana:latest
-    #container_name: grafana
-    #ports:
-     # - "3001:3000"
-    #depends_on:
-     # - prometheus
-    #networks:
-     # - data-network
-    #volumes:
-     # - grafana_data:/var/lib/grafana
-    #deploy:
-     # resources:
-      #  limits:
-       #   memory: 200M # Optimize edildi
-  # 15. MLFLOW SERVER
   mlflow:
     image: ghcr.io/mlflow/mlflow:v2.11.3
     container_name: mlflow_server
@@ -285,15 +223,12 @@ services:
         limits:
           memory: 512m
 
-
-  # 17. ADMINER (Sadece Local Test İçin)
   adminer:
     image: adminer
     container_name: db_admin
     ports: [ "8080:8080" ]
     networks: [ data-network ]
 
-  # 18. KAFDROP (Kafka UI)
   kafdrop:
     image: obsidiandynamics/kafdrop
     container_name: kafdrop
@@ -313,7 +248,6 @@ services:
         limits:
           memory: 256m
   
-  # 20. INFERENCE API (Tahmin Motoru)
   inference_api:
     build:
       context: .
@@ -334,7 +268,7 @@ services:
         limits:
           memory: 512m
 
-  # 19. OTOMATİK VERİTABANI KURUCU (DB-INIT)
+  # 🔴 AKILLI DB-INIT V13: Postgres'i bekler ve tüm sütunları eksiksiz kurar
   db-init:
     image: postgres:15
     container_name: db_init
@@ -346,8 +280,12 @@ services:
       PGPASSWORD: "SuperSecret_DB_Password_2026"
     command: >
       sh -c "
-      echo 'Postgres bekleniyor...';
-      sleep 15;
+      echo '🟢 Postgres sunucusunun hazir olmasi bekleniyor...';
+      while ! psql -h postgres -U admin_lakehouse -d market_db -c 'select 1' > /dev/null 2>&1; do
+        echo '⏳ Postgres hala basliyor, 3 saniye daha bekleniyor...';
+        sleep 3;
+      done;
+      echo '🟢 Postgres Hazir! V13 God Mode Tablolari Kuruluyor...';
       psql -h postgres -U admin_lakehouse -d market_db -c \"
       CREATE TABLE IF NOT EXISTS market_data (
           symbol VARCHAR(20),
@@ -356,12 +294,21 @@ services:
           volatility DOUBLE PRECISION,
           volume_usd DOUBLE PRECISION,    
           is_buyer_maker BOOLEAN,
-          trade_side VARCHAR(10),          
+          trade_side VARCHAR(10),
+          cvd DOUBLE PRECISION DEFAULT 0,
+          buy_wall_usd DOUBLE PRECISION DEFAULT 0,
+          sell_wall_usd DOUBLE PRECISION DEFAULT 0,
+          imbalance_ratio DOUBLE PRECISION DEFAULT 0,
+          mark_price DOUBLE PRECISION DEFAULT 0,
+          funding_rate DOUBLE PRECISION DEFAULT 0,
+          liq_buy_usd DOUBLE PRECISION DEFAULT 0,
+          liq_sell_usd DOUBLE PRECISION DEFAULT 0,
+          vpin_score DOUBLE PRECISION DEFAULT 0,
+          wall_imbalance DOUBLE PRECISION DEFAULT 0,
           processed_time TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
       );
       CREATE EXTENSION IF NOT EXISTS timescaledb;
       SELECT create_hypertable('market_data', 'processed_time', if_not_exists => TRUE, migrate_data => TRUE);
-      
       CREATE TABLE IF NOT EXISTS api_users (
           id SERIAL PRIMARY KEY,
           username VARCHAR(50) UNIQUE NOT NULL,
@@ -371,13 +318,13 @@ services:
           password_hash VARCHAR(256),
           created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
       );
-      \" && echo 'Tablolar ve Hypertable basariyla kuruldu!';
+      \" && echo '✅ V13 God Mode Tablolari Basariyla Kuruldu!';
       "
     deploy:
       resources:
         limits:
           memory: 128m
-    # 20. REDIS (Distributed Cache & Rate Limiting)
+
   redis:
     image: redis:alpine
     container_name: redis_cache

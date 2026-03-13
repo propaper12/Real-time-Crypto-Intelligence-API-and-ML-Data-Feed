@@ -22,7 +22,8 @@ RUN pip install --no-cache-dir \
     asyncpg\
     passlib\
     bcrypt\
-    yfinance
+    yfinance\
+    google-generativeai
 
 # API Dosyaları
 COPY ingestion_api.py .

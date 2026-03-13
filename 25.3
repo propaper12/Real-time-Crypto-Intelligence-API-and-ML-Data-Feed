@@ -18,7 +18,7 @@ docker exec spark-silver python train_model.py
 Tarayıcıdan şu adreslere giderek sistemi izleyebilirsin:
 
 Dashboard (Streamlit): http://localhost:8501
-API Dokümantasyonu (Swagger): http://localhost:8000/docs
+API Dokümantasyonu (Swagger): docker-compose restart api-gateway
 docker-compose exec postgres psql -U admin_lakehouse -d market_db -c "CREATE TABLE IF NOT EXISTS api_users (id SERIAL PRIMARY KEY, username VARCHAR(50), api_key VARCHAR(100) UNIQUE, tier VARCHAR(20));"
 MinIO (Veri Depo - Bucket): http://localhost:9001 
 GRAFANA=http://localhost:3001/
@@ -27,7 +27,7 @@ MLFLOW=http://localhost:5000/
 CAdvisor=http://localhost:8090/containers/
 AirFlow=http://localhost:8081
 METABASE=http://localhost:3005/
-KRAFDrop=http://localhost:9010
+KRAFDrop=docker logs -f spark-worker
 kafka_connect=http://localhost:8003 
 kafka_connect_2=http://localhost:8083/ bu sayfa gelınce kafa connect baglantısı gerceklesir.
 docker exec -it kafka-connect confluent-hub install --no-prompt confluentinc/kafka-connect-datagen:latest
@@ -39,7 +39,7 @@ Köklü Değişiklik veya Kütüphane Eklediysen (Dockerfile)
 docker-compose up -d --build
 
 sql kontrol:docker exec -it postgres psql -U admin -d market_db -c "SELECT * FROM crypto_prices LIMIT 5;
-
+docker-compose up -d --build db-init
 SELECT
     symbol,
     processed_time,
