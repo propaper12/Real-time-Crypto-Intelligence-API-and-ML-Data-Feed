@@ -12,7 +12,6 @@ logger = logging.getLogger(__name__)
 KAFKA_SERVER = os.getenv('KAFKA_BOOTSTRAP_SERVERS', 'kafka:9092')
 KAFKA_TOPIC = 'market_data'
 
-# Piyasa Hafızası (Market State)
 market_state = {}
 
 def get_kafka_producer():
@@ -33,40 +32,34 @@ producer = get_kafka_producer()
 
 def on_message(ws, message):
     try:
-        raw_message = json.loads(message)
-        if 'stream' not in raw_message: return
+        raw = json.loads(message)
+        if 'stream' not in raw: return
         
-        stream_name = raw_message['stream']
-        data = raw_message['data']
+        stream_name = raw['stream']
+        data = raw['data']
         
-        # 1. LİKİDASYONLAR (!forceOrder)
         if stream_name == '!forceOrder@arr':
             symbol = data['o']['s'].upper()
             side = data['o']['S']
             usd_val = float(data['o']['p']) * float(data['o']['q'])
-            
             if symbol not in market_state: market_state[symbol] = {"buy_wall":0, "sell_wall":0, "mark_price":0, "funding_rate":0, "liq_buy":0, "liq_sell":0}
             if side == 'SELL': market_state[symbol]['liq_buy'] += usd_val
             else: market_state[symbol]['liq_sell'] += usd_val
 
-        # 2. MARK PRICE & FUNDING RATE
         elif '@markPrice' in stream_name:
             symbol = data['s'].upper()
             if symbol not in market_state: market_state[symbol] = {"buy_wall":0, "sell_wall":0, "mark_price":0, "funding_rate":0, "liq_buy":0, "liq_sell":0}
             market_state[symbol]['mark_price'] = float(data['p'])
             market_state[symbol]['funding_rate'] = float(data.get('r', 0))
 
-        # 3. ORDER BOOK (EMİR DEFTERİ DUVARLARI)
         elif '@depth20' in stream_name:
             symbol = stream_name.split('@')[0].upper()
             buy_wall = sum([float(p) * float(q) for p, q in data.get('b', [])])
             sell_wall = sum([float(p) * float(q) for p, q in data.get('a', [])])
-            
             if symbol not in market_state: market_state[symbol] = {"buy_wall":0, "sell_wall":0, "mark_price":0, "funding_rate":0, "liq_buy":0, "liq_sell":0}
             market_state[symbol]['buy_wall'] = buy_wall
             market_state[symbol]['sell_wall'] = sell_wall
 
-        # 4. İŞLEM (TRADE) GERÇEKLEŞTİĞİNDE HEPSİNİ PAKETLE
         elif '@aggTrade' in stream_name:
             symbol = data['s'].upper()
             price = float(data['p'])
@@ -86,21 +79,21 @@ def on_message(ws, message):
                 'funding_rate': state['funding_rate'], 'liq_buy_usd': state['liq_buy'],
                 'liq_sell_usd': state['liq_sell'],
                 'timestamp': datetime.fromtimestamp(data['T'] / 1000).isoformat(),
-                'event_time': datetime.utcnow().isoformat()
+                'event_time': datetime.utcnow().isoformat(),
+                'source': 'binance_futures'
             }
             producer.send(KAFKA_TOPIC, value=processed_data)
             
-            # Likidasyonları bir kez yolladıktan sonra sıfırla ki mükerrer yazmasın
             if symbol in market_state:
                 market_state[symbol]['liq_buy'] = 0
                 market_state[symbol]['liq_sell'] = 0
 
     except Exception as e:
-        logger.error(f"❌ Veri işleme hatası: {e}")
+        pass
 
-def on_error(ws, error): logger.error(f"WebSocket hatası: {error}")
-def on_close(ws, c, m): logger.warning("🔄 Bağlantı kapandı. Yeniden bağlanılıyor..."); time.sleep(2)
-def on_open(ws): logger.info("🚀 Binance Futures God-Mode Bağlantısı Aktif!")
+def on_error(ws, error): logger.error(f"WS Hatası: {error}")
+def on_close(ws, c, m): time.sleep(2)
+def on_open(ws): logger.info("🚀 Binance FUTURES 25-Coin Bağlantısı Aktif!")
 
 if __name__ == "__main__":
     coins = ["btcusdt", "ethusdt", "solusdt", "bnbusdt", "xrpusdt", "adausdt", "avaxusdt", "dogeusdt", "dotusdt", "linkusdt", "trxusdt", "shibusdt", "ltcusdt", "uniusdt", "bchusdt", "atomusdt", "xlmusdt", "nearusdt", "algousdt", "vetusdt", "filusdt", "icpusdt", "sandusdt", "manausdt", "ftmusdt"]

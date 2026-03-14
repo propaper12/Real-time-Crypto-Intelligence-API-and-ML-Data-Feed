@@ -23,7 +23,8 @@ RUN pip install --no-cache-dir \
     passlib\
     bcrypt\
     yfinance\
-    google-generativeai
+    google-generativeai\
+    aiohttp
 
 # API Dosyaları
 COPY ingestion_api.py .
