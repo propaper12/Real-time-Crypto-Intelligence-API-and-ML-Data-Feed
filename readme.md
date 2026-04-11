@@ -595,7 +595,10 @@ Bu proje, bir **Yönetim Bilişim Sistemleri (YBS)** öğrencisi tarafından gel
 
 _© 2026 RadarPro Ecosystem - Real-Time Intelligence for Everyone._
 
-## 🤝 Projenin görselleri:
+## 🤝 Ekran Görüntüleri ve Terminal
+
+Projenin sunduğu vizyonu ve gerçek zamanlı analiz gücünü aşağıdaki ekran alıntılarından inceleyebilirsiniz:
+
 <img width="2879" height="1530" alt="Ekran görüntüsü 2026-03-05 161743" src="https://github.com/user-attachments/assets/e8480dd7-0c9b-485f-b542-47a96ad13c0f" />
 ![Uplo<img width="2783" height="1545" alt="Ekran görüntüsü 2026-03-05 162814" src="https://github.com/user-attachments/assets/54d68605-2c1b-4328-9593-1d64399c24b0" />
 ading Ekran g<img width="2792" height="1537" alt="Ekran görüntüsü 2026-03-05 162932" src="https://github.com/user-attachments/assets/9fb3cc13-a4c0-4b9c-8b9a-fbdc352991c3" />
