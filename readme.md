@@ -40,19 +40,23 @@
 # RadarPro: Real-Time Crypto Intelligence API & MLOps Pipeline
 
 
-## 📖 RadarPro: Vizyon ve Sistem Felsefesi
+## 📖 Vizyon ve Hibrit Sistem Felsefesi
 
-**RadarPro**, finansal veri ekosistemlerindeki en kritik darboğazlar olan **yüksek veri gecikmesi (latency)** ve **model drift (performans kaybı)** sorunlarını modernize etmek amacıyla geliştirilmiş, uçtan uca bir **Data Engineering ve MLOps platformudur.**
+**RadarPro**, finansal veri ekosistemindeki yüksek gecikme (latency) ve model performansı kaybı (model drift) sorunlarını modernize etmek amacıyla geliştirilmiş, uçtan uca bir **Hibrit Veri Mühendisliği ve MLOps platformudur.** 
 
-Platformun temel mimarisi, verinin ham kaynaktan (Binance WebSocket) alınmasından itibaren milisaniyeler içinde işlenmesini, **Medallion Architecture (Bronze/Silver/Gold)** standartlarında depolanmasını ve otonom yapay zeka modelleriyle bir sonraki periyodun (fiyat/anomali) tahmin edilmesini kapsar.
+Sistem, iki ana katmanda kurumsal hizmet sunmaktadır:
+-   📡 **DaaS (Data-as-a-Service):** 25+ kripto varlığın anlık piyasa akışlarını (Trade, Depth, Liquidation) milisaniyelik gecikmeyle normalize eder ve kurumsal bir veri havuzu olarak dış dünyaya servis eder.
+-   🧠 **MaaS (Model-as-a-Service):** Delta Lake üzerinde eğitilen yapay zeka modellerini, asenkron bir çıkarım motoru üzerinden anlık fiyat tahminleri ve anomali skorları üreten bir hizmet olarak sunar.
+
+Platformun temel mimarisi, verinin ham kaynaktan asenkron olarak alınmasını, **Medallion Architecture (Bronze/Silver/Gold)** standartlarında depolanmasını ve milisaniyeler içinde otonom analizlere dönüştürülmesini kapsar.
 
 ## 🎯 Temel Değer Önerileri
 
--   **Gerçek Zamanlı Karar Destek:** Geleneksel "Batch" işlemeye dayalı hantal yapıların aksine RadarPro, verinin oluşumu ile işlenmiş analitik çıktıya dönüşmesi arasındaki süreyi **5 saniyenin altına indirir.**
+-   **Gerçek Zamanlı Karar Destek:** RadarPro, verinin oluşumu ile işlenmiş analitik (DaaS) veya tahminsel (MaaS) çıktıya dönüşmesi arasındaki süreyi **5 saniyenin altına indirir.**
     
--   **Otonom Sistem Mimarisi:** Sistem sadece veri sunmakla kalmaz; **Self-Healing (Kendi Kendini Onaran)** ve **Self-Learning (Kendi Kendini Eğiten)** yapısıyla, veri hacmi arttıkça modellerini otomatik olarak günceller ve üretim hattına (production) kesintisiz dahil eder.
+-   **Otonom Sistem Mimarisi:** Sistem sadece veri sunmakla kalmaz; **Self-Healing (Onarım)** ve **Continuous Training (Eğitim)** yapısıyla, veri hacmi arttıkça modellerini otomatik günceller ve üretim hattına (production) dahil eder.
     
--   **Analitik Derinlik:** Sadece fiyat odaklı değil; likidasyon akışları (liquidation clusters), CVD (Cumulative Volume Delta) ve VPIN (Volume-based Probability of Informed Trading) gibi sofistike finansal metrikleri gerçek zamanlı hesaplayarak kurumsal düzeyde bir veri ambarı sunar
+-   **Analitik Derinlik:** Sadece fiyat odaklı değil; **CVD (Cumulative Volume Delta)**, **VPIN** ve **Order Flow Imbalance** gibi sofistike finansal metrikleri gerçek zamanlı hesaplayarak kurumsal düzeyde bir veri ambarı sunar.
 
 ----------
 
@@ -138,6 +142,10 @@ Plaintext
 │   ├── train_model.py           # XGBoost + LightGBM AutoML Fabrikası 
 │   ├── ml_watcher.py            # Otonom Continuous Training (CT) ve Hot-Reload Orkestratörü 
 │   └── quality_gate.py          # Data Quality Gate (Model Öncesi Veri Güvenlik Kapısı) 
+│
+├── telegram_bot/               # 🛰️ Telegram Intelligence Node
+│   ├── bot.py                   # Asyncio tabanlı DaaS komuta merkezi
+│   └── handlers/                # Arbitraj ve Canlı Pulse Akış motorları
 │
 ├── devops_config/              # 🐳 Container Orchestration & Monitoring
 │   ├── docker-compose.yaml      # 15+ Mikroservisin Global Orkestrasyonu 
