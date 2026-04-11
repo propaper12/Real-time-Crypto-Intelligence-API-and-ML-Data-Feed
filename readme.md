@@ -1,9 +1,4 @@
-<img width="2738" height="1656" alt="Ekran görüntüsü 2026-04-11 201616" src="https://github.com/user-attachments/assets/259b5566-9269-4852-818b-bda3c6710ad1" />
-<img width="2734" height="1644" alt="Ekran görüntüsü 2026-04-11 201623" src="https://github.com/user-attachments/assets/e6825ff8-45b0-409d-80e5-3a51f75be2a2" />
-<img width="2721" height="1636" alt="Ekran görüntüsü 2026-04-11 201649" src="https://github.com/user-attachments/assets/f38fd7f1-6cc1-4e25-8248-eca7ae052018" />
-<img width="2766" height="1550" alt="Ekran görüntüsü 2026-04-11 201700" src="https://github.com/user-attachments/assets/5d0efaeb-5e4d-4759-a502-825eacfdaf1c" />
-<img width="2782" height="1546" alt="Ekran görüntüsü 2026-04-11 201710" src="https://github.com/user-attachments/assets/bbd20167-43ae-4107-889d-11b2ffe5bc43" />
-<img width="2733" height="1633" alt="Ekran görüntüsü 2026-04-11 201608" src="https://github.com/user-attachments/assets/c81c305f-cf03-4067-b85f-ed6360b4a17e" />
+
 <h1 align="center">RadarPro: Real-Time Crypto Intelligence API & MLOps Platform</h1>
 
 <p align="center">
@@ -585,6 +580,12 @@ ading Ekran g<img width="2792" height="1537" alt="Ekran görüntüsü 2026-03-05
 <img width="2787" height="1545" alt="Ekran görüntüsü 2026-03-05 165421" src="https://github.com/user-attachments/assets/26e9c0d9-a0db-4ec7-af4a-06493d7ca368" />
 <img width="2268" height="1220" alt="Ekran görüntüsü 2026-03-05 165531" src="https://github.com/user-attachments/assets/e5e0d42d-386e-4a25-ba86-c7bfaeea3bd7" />
 <img width="2879" height="1704" alt="Ekran görüntüsü 2026-03-05 165602" src="https://github.com/user-attachments/assets/c1b3d7dc-57e3-4c4c-934c-efea9a5ffbf6" />
+<img width="2738" height="1656" alt="Ekran görüntüsü 2026-04-11 201616" src="https://github.com/user-attachments/assets/259b5566-9269-4852-818b-bda3c6710ad1" />
+<img width="2734" height="1644" alt="Ekran görüntüsü 2026-04-11 201623" src="https://github.com/user-attachments/assets/e6825ff8-45b0-409d-80e5-3a51f75be2a2" />
+<img width="2721" height="1636" alt="Ekran görüntüsü 2026-04-11 201649" src="https://github.com/user-attachments/assets/f38fd7f1-6cc1-4e25-8248-eca7ae052018" />
+<img width="2766" height="1550" alt="Ekran görüntüsü 2026-04-11 201700" src="https://github.com/user-attachments/assets/5d0efaeb-5e4d-4759-a502-825eacfdaf1c" />
+<img width="2782" height="1546" alt="Ekran görüntüsü 2026-04-11 201710" src="https://github.com/user-attachments/assets/bbd20167-43ae-4107-889d-11b2ffe5bc43" />
+<img width="2733" height="1633" alt="Ekran görüntüsü 2026-04-11 201608" src="https://github.com/user-attachments/assets/c81c305f-cf03-4067-b85f-ed6360b4a17e" />
 
 
 
