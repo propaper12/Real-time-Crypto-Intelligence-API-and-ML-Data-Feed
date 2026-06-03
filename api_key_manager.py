@@ -25,8 +25,10 @@ def setup_database():
         CREATE TABLE IF NOT EXISTS api_users (
             id SERIAL PRIMARY KEY,
             username VARCHAR(50) UNIQUE NOT NULL,
+            email VARCHAR(255) UNIQUE NOT NULL,
             api_key VARCHAR(64) UNIQUE NOT NULL,
             tier VARCHAR(20) DEFAULT 'PRO',
+            password_hash VARCHAR(255),
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
     """)
@@ -42,11 +44,12 @@ def create_user(username, tier="PRO"):
     # Kırılması imkansız 32 bytelık rastgele bir şifre üretiyoruz
     raw_key = secrets.token_urlsafe(32)
     api_key = f"sk_live_{raw_key}" # sk_live = Secret Key Live (Stripe ve OpenAI standardı)
+    email = f"{username.lower()}@radarpro.io"
     
     try:
         cur = conn.cursor()
-        cur.execute("INSERT INTO api_users (username, api_key, tier) VALUES (%s, %s, %s)", 
-                    (username, api_key, tier))
+        cur.execute("INSERT INTO api_users (username, email, api_key, tier) VALUES (%s, %s, %s, %s)", 
+                    (username, email, api_key, tier))
         conn.commit()
         print("\n🎉 YENİ MÜŞTERİ BAŞARIYLA OLUŞTURULDU!")
         print("-" * 50)

@@ -2,6 +2,7 @@ import asyncio
 import json
 import os
 import secrets
+import base64
 import time
 import hmac
 import hashlib
@@ -13,10 +14,12 @@ import bcrypt
 import yfinance as yf
 import google.generativeai as genai
 import aiohttp
+import ccxt.async_support as ccxt
 
 from pydantic import BaseModel
 from fastapi import FastAPI, HTTPException, Request, WebSocket, Security, Query
-from fastapi.responses import StreamingResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security.api_key import APIKeyHeader
 from aiokafka import AIOKafkaConsumer
@@ -56,29 +59,32 @@ def verify_password(plain_password: str, hashed_password: str):
 # 📰 ADIM 3: ASENKRON HABER TARAYICI BOTU (RSS SCRAPER)
 # ==============================================================================
 async def news_scraper_task():
-    """ Arka planda çalışır, kripto haberlerini okuyup Redis'e atar. """
-    print("📰 Haber Botu Başlatıldı...")
+    """ Haberleri okur, Gemini ile analiz eder ve duygu skorunu Redis'e yazar. """
+    print("📰 AI Sentiment Engine Başlatıldı...")
     while True:
         try:
-            # CoinTelegraph RSS'ini okuyoruz
             resp = requests.get("https://cointelegraph.com/rss", timeout=10)
             if resp.status_code == 200:
                 root = ET.fromstring(resp.content)
                 news_list = []
-                for item in root.findall('./channel/item')[:5]: # En güncel 5 haber
-                    news_list.append({
-                        "title": item.find('title').text,
-                        "date": item.find('pubDate').text,
-                        "link": item.find('link').text
-                    })
+                for item in root.findall('./channel/item')[:5]:
+                    title = item.find('title').text
+                    news_list.append(title)
                 
-                if getattr(app.state, "redis", None):
-                    await app.state.redis.set("LATEST_NEWS", json.dumps(news_list))
-                    print("✅ Flaş Haberler Güncellendi!")
+                # Gemini ile Sentiment Analizi
+                if ai_model and news_list:
+                    prompt = f"Aşağıdaki kripto haber başlıklarını analiz et ve piyasa duygu skorunu (-1.0 ile +1.0 arası) tek bir sayı olarak döndür: {', '.join(news_list)}"
+                    response = await ai_model.generate_content_async(prompt)
+                    sentiment_score = response.text.strip()
+                    
+                    if getattr(app.state, "redis", None):
+                        await app.state.redis.set("GLOBAL_SENTIMENT", sentiment_score)
+                        await app.state.redis.set("LATEST_NEWS", json.dumps(news_list))
+                        print(f"✅ AI Duygu Analizi Tamamlandı: {sentiment_score}")
         except Exception as e:
-            print(f"⚠️ Haber Çekilemedi: {e}")
+            print(f"⚠️ Sentiment Analizi Başarısız: {e}")
         
-        await asyncio.sleep(300) # Her 5 dakikada bir güncelle
+        await asyncio.sleep(300) 
 
 # ==============================================================================
 # 🗄️ BAŞLANGIÇ SİSTEMLERİ VE DB GÜNCELLEMELERİ
@@ -114,10 +120,38 @@ async def startup_event():
                     await conn.execute("SELECT create_hypertable('market_data', 'processed_time', if_not_exists => TRUE);")
                 except: pass
 
-                # 2. 💼 Kullanıcı Tablosuna Portföy Anahtarları İçin Sütun Ekle (Çökmeden)
+                # 2. 💼 Kullanıcı Tablosuna Portföy ve Webhook İçin Sütun Ekle
                 await conn.execute("ALTER TABLE api_users ADD COLUMN IF NOT EXISTS binance_key VARCHAR(255);")
                 await conn.execute("ALTER TABLE api_users ADD COLUMN IF NOT EXISTS binance_secret VARCHAR(255);")
-                print("✅ Veritabanı Şemaları Güncel!")
+                await conn.execute("ALTER TABLE api_users ADD COLUMN IF NOT EXISTS webhook_url TEXT;")
+                
+                # 🤖 Otonom HFT Bot Ayarları Kolonları
+                await conn.execute("ALTER TABLE api_users ADD COLUMN IF NOT EXISTS bot_active BOOLEAN DEFAULT FALSE;")
+                await conn.execute("ALTER TABLE api_users ADD COLUMN IF NOT EXISTS bot_sim_mode BOOLEAN DEFAULT TRUE;")
+                await conn.execute("ALTER TABLE api_users ADD COLUMN IF NOT EXISTS bot_min_spread DOUBLE PRECISION DEFAULT 0.15;")
+                await conn.execute("ALTER TABLE api_users ADD COLUMN IF NOT EXISTS bot_min_trust INTEGER DEFAULT 80;")
+                await conn.execute("ALTER TABLE api_users ADD COLUMN IF NOT EXISTS binance_key_enc TEXT;")
+                await conn.execute("ALTER TABLE api_users ADD COLUMN IF NOT EXISTS binance_secret_enc TEXT;")
+                await conn.execute("ALTER TABLE api_users ADD COLUMN IF NOT EXISTS okx_key_enc TEXT;")
+                await conn.execute("ALTER TABLE api_users ADD COLUMN IF NOT EXISTS okx_secret_enc TEXT;")
+                await conn.execute("ALTER TABLE api_users ADD COLUMN IF NOT EXISTS okx_pass_enc TEXT;")
+                
+                # 📈 Bot İşlem Geçmişi Tablosu
+                await conn.execute("""
+                    CREATE TABLE IF NOT EXISTS bot_trades (
+                        id SERIAL PRIMARY KEY,
+                        email VARCHAR(255) NOT NULL,
+                        symbol VARCHAR(50) NOT NULL,
+                        buy_exchange VARCHAR(50),
+                        sell_exchange VARCHAR(50),
+                        spread_pct DOUBLE PRECISION,
+                        profit_usd DOUBLE PRECISION,
+                        mode VARCHAR(20) NOT NULL,
+                        status VARCHAR(20) NOT NULL,
+                        processed_time TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW()
+                    );
+                """)
+                print("✅ Veritabanı Şemaları Kurumsal Mod ve HFT Bot İçin Güncellendi!")
             break
         except Exception as e:
             print(f"⚠️ DB Bekleniyor... {e}")
@@ -199,13 +233,119 @@ async def login_user(user: UserLogin, request: Request):
             return {"status": "error", "message": "Hatalı giriş!"}
     except Exception as e: return {"status": "error"}
 
-async def verify_api_key(api_key_header: str = Security(api_key_header)):
+async def verify_api_key(api_key_header: str = Security(api_key_header), request: Request = None):
+    # Geliştirici Modu Kontrolü (Localhost üzerinden kolay erişim için)
+    if os.getenv("DEV_MODE", "false").lower() == "true":
+        return {"username": "dev_user", "email": "dev@radarpro.io", "tier": "VIP", "api_key": "sk_live_dev"}
+
     if not api_key_header: raise HTTPException(status_code=401)
+    
+    r = getattr(app.state, "redis", None)
+    cache_key = f"auth:api_key:{api_key_header}"
+    
+    if r:
+        try:
+            cached_user = await r.get(cache_key)
+            if cached_user:
+                user_dict = json.loads(cached_user)
+                await check_redis_limit(user_dict['email'], user_dict['tier'])
+                return user_dict
+        except Exception as e:
+            print(f"⚠️ Redis auth cache okuma hatası: {e}")
+
     async with app.state.db_pool.acquire() as conn:
         user = await conn.fetchrow("SELECT username, email, tier FROM api_users WHERE api_key = $1", api_key_header)
     if not user: raise HTTPException(status_code=403)
-    await check_redis_limit(user['email'], user['tier'])
-    return dict(user)
+    
+    user_dict = dict(user)
+    user_dict["api_key"] = api_key_header  # İptal/Güncelleme işlemlerinde önbellek silmek için ekliyoruz
+    
+    if r:
+        try:
+            await r.set(cache_key, json.dumps(user_dict), ex=300)
+        except Exception as e:
+            print(f"⚠️ Redis auth cache yazma hatası: {e}")
+            
+    await check_redis_limit(user_dict['email'], user_dict['tier'])
+    return user_dict
+
+# ==============================================================================
+# 🦾 RADARPRO MASTER EXECUTIONER (GERÇEK TİCARET MOTORU)
+# ==============================================================================
+active_exchanges = {} # Hafızada tutulan aktif borsa bağlantıları
+
+class TradeRequest(BaseModel):
+    exchange: str
+    api_key: str
+    secret_key: str
+    passphrase: str = None
+
+class ExecutionRequest(BaseModel):
+    symbol: str
+    buy_ex: str
+    sell_ex: str
+    amount: float = 10.0 # Örn: 10 USDT'lik işlem
+
+@app.post("/api/v1/trade/connect")
+async def connect_exchange(data: TradeRequest, user: dict = Security(verify_api_key)):
+    """ Bir borsayı API anahtarlarıyla sisteme bağlar """
+    try:
+        ex_class = getattr(ccxt, data.exchange.lower())
+        ex = ex_class({
+            'apiKey': data.api_key,
+            'secret': data.secret_key,
+            'password': data.passphrase,
+            'enableRateLimit': True
+        })
+        # Bağlantıyı test et (Bakiye çekerek)
+        await ex.fetch_balance()
+        active_exchanges[data.exchange.lower()] = ex
+        return {"status": "success", "message": f"{data.exchange} başarıyla bağlandı!"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Bağlantı Hatası: {str(e)}")
+
+@app.post("/api/v1/trade/kill")
+async def kill_all_trades(user: dict = Security(verify_api_key)):
+    """ Tüm borsa bağlantılarını keser ve sistemi durdurur """
+    global active_exchanges
+    try:
+        # Önce borsa bağlantılarını kapat (async)
+        for ex in active_exchanges.values():
+            await ex.close()
+        active_exchanges = {}
+        return {"status": "success", "message": "EMERGENCY STOP: Tüm sistemler durduruldu ve bağlantılar kesildi!"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.post("/api/v1/trade/execute")
+async def execute_arbitrage(data: ExecutionRequest, user: dict = Security(verify_api_key)):
+    """ Arbitraj emrini borsalara iletir (AL ve SAT eş zamanlı) """
+    buy_ex_id = data.buy_ex.lower()
+    sell_ex_id = data.sell_ex.lower()
+
+    if buy_ex_id not in active_exchanges or sell_ex_id not in active_exchanges:
+        return {"status": "error", "message": "İlgili borsalar bağlı değil. Lütfen API bağlayın."}
+
+    b_ex = active_exchanges[buy_ex_id]
+    s_ex = active_exchanges[sell_ex_id]
+
+    try:
+        # 🚀 EŞ ZAMANLI İNFAZ (AL & SAT)
+        tasks = [
+            b_ex.create_market_buy_order(data.symbol, data.amount),
+            s_ex.create_market_sell_order(data.symbol, data.amount)
+        ]
+        results = await asyncio.gather(*tasks)
+        
+        return {
+            "status": "success", 
+            "message": "Arbitraj Başarıyla İnfaz Edildi!",
+            "buy_order": results[0]['id'],
+            "sell_order": results[1]['id']
+        }
+    except Exception as e:
+        return {"status": "error", "message": f"İşlem Başarısız: {str(e)}"}
+
 
 @app.get("/api/v1/auth/me")
 async def get_my_profile(user: dict = Security(verify_api_key)):
@@ -233,14 +373,132 @@ async def revoke_api_key(user: dict = Security(verify_api_key)):
     new_api_key = f"sk_live_{secrets.token_urlsafe(32)}"
     async with app.state.db_pool.acquire() as conn:
         await conn.execute("UPDATE api_users SET api_key = $1 WHERE email = $2", new_api_key, user['email'])
+        
+    r = getattr(app.state, "redis", None)
+    if r and "api_key" in user:
+        try:
+            await r.delete(f"auth:api_key:{user['api_key']}")
+        except Exception as e:
+            print(f"⚠️ Redis auth cache silme hatası (revoke_api_key): {e}")
+            
     return {"status": "success", "new_api_key": new_api_key}
 
 @app.post("/api/v1/auth/admin_update_tier")
 async def admin_update_tier(data: TierUpdate):
     # Not: Gerçek bir sistemde buraya özel bir Admin Auth eklenmelidir
+    r = getattr(app.state, "redis", None)
     async with app.state.db_pool.acquire() as conn:
+        user_record = await conn.fetchrow("SELECT api_key FROM api_users WHERE email = $1", data.email)
         await conn.execute("UPDATE api_users SET tier = $1 WHERE email = $2", data.new_tier, data.email)
+        
+    if user_record and r:
+        try:
+            await r.delete(f"auth:api_key:{user_record['api_key']}")
+        except Exception as e:
+            print(f"⚠️ Redis auth cache silme hatası (admin_update_tier): {e}")
+            
     return {"status": "success"}
+
+# ==============================================================================
+# 🤖 OTONOM HFT BOT & ŞİFRELİ API ANAHTARI YÖNETİMİ
+# ==============================================================================
+BOT_SECRET_KEY = os.getenv("BOT_SECRET_KEY", "SuperSecretRadarProBotKey_2026")
+
+def encrypt_key(plain_text: str) -> str:
+    if not plain_text: return ""
+    key_len = len(BOT_SECRET_KEY)
+    xor_bytes = bytearray(ord(c) ^ ord(BOT_SECRET_KEY[i % key_len]) for i, c in enumerate(plain_text))
+    return base64.b64encode(xor_bytes).decode('utf-8')
+
+def decrypt_key(cipher_text: str) -> str:
+    if not cipher_text: return ""
+    try:
+        xor_bytes = base64.b64decode(cipher_text.encode('utf-8'))
+        key_len = len(BOT_SECRET_KEY)
+        plain_bytes = bytearray(b ^ ord(BOT_SECRET_KEY[i % key_len]) for i, b in enumerate(xor_bytes))
+        return plain_bytes.decode('utf-8')
+    except:
+        return ""
+
+class BotSettingsUpdate(BaseModel):
+    bot_active: bool
+    bot_sim_mode: bool
+    bot_min_spread: float
+    bot_min_trust: int
+
+class BotKeysUpdate(BaseModel):
+    binance_key: str = ""
+    binance_secret: str = ""
+    okx_key: str = ""
+    okx_secret: str = ""
+    okx_pass: str = ""
+
+@app.get("/api/v1/bot/settings")
+async def get_bot_settings(user: dict = Security(verify_api_key)):
+    async with app.state.db_pool.acquire() as conn:
+        record = await conn.fetchrow(
+            "SELECT bot_active, bot_sim_mode, bot_min_spread, bot_min_trust FROM api_users WHERE email = $1",
+            user['email']
+        )
+        if record:
+            return {"status": "success", "data": dict(record)}
+    return {"status": "error", "message": "Kullanıcı bulunamadı"}
+
+@app.post("/api/v1/bot/settings")
+async def update_bot_settings(data: BotSettingsUpdate, user: dict = Security(verify_api_key)):
+    async with app.state.db_pool.acquire() as conn:
+        await conn.execute(
+            """UPDATE api_users SET 
+               bot_active = $1, bot_sim_mode = $2, bot_min_spread = $3, bot_min_trust = $4 
+               WHERE email = $5""",
+            data.bot_active, data.bot_sim_mode, data.bot_min_spread, data.bot_min_trust, user['email']
+        )
+    return {"status": "success", "message": "Bot ayarları güncellendi"}
+
+@app.post("/api/v1/bot/keys")
+async def update_bot_keys(data: BotKeysUpdate, user: dict = Security(verify_api_key)):
+    bin_k = encrypt_key(data.binance_key)
+    bin_s = encrypt_key(data.binance_secret)
+    okx_k = encrypt_key(data.okx_key)
+    okx_s = encrypt_key(data.okx_secret)
+    okx_p = encrypt_key(data.okx_pass)
+    
+    async with app.state.db_pool.acquire() as conn:
+        await conn.execute(
+            """UPDATE api_users SET 
+               binance_key_enc = $1, binance_secret_enc = $2, 
+               okx_key_enc = $3, okx_secret_enc = $4, okx_pass_enc = $5
+               WHERE email = $6""",
+            bin_k, bin_s, okx_k, okx_s, okx_p, user['email']
+        )
+    return {"status": "success", "message": "Borsa API anahtarları şifrelenerek kaydedildi"}
+
+@app.get("/api/v1/bot/trades")
+async def get_bot_trades(user: dict = Security(verify_api_key)):
+    async with app.state.db_pool.acquire() as conn:
+        rows = await conn.fetch(
+            "SELECT * FROM bot_trades WHERE email = $1 ORDER BY processed_time DESC LIMIT 50",
+            user['email']
+        )
+        trades = [dict(r) for r in rows]
+        for t in trades:
+            if isinstance(t.get("processed_time"), datetime):
+                t["processed_time"] = t["processed_time"].strftime("%Y-%m-%d %H:%M:%S")
+        
+        # İstatistikleri hesapla
+        stats_row = await conn.fetchrow(
+            """SELECT COUNT(*) as total, 
+                      COUNT(CASE WHEN status = 'SUCCESS' THEN 1 END) as success,
+                      SUM(profit_usd) as total_profit
+               FROM bot_trades WHERE email = $1""",
+            user['email']
+        )
+        stats = {
+            "total_trades": stats_row["total"] or 0,
+            "successful_trades": stats_row["success"] or 0,
+            "total_profit_usd": float(stats_row["total_profit"] or 0.0)
+        }
+        return {"status": "success", "trades": trades, "stats": stats}
 
 # ==============================================================================
 # 💼 ADIM 2: PORTFÖY VE CÜZDAN ENTEGRASYONU (BINANCE READ-ONLY)
@@ -280,6 +538,30 @@ async def get_portfolio(user: dict = Security(verify_api_key)):
         return {"status": "success", "data": balances}
     except Exception as e:
         return {"status": "error", "message": str(e)}
+
+# ==============================================================================
+# 🔌 WEBHOOK GATEWAY (KURUMSAL ENTEGRASYON)
+# ==============================================================================
+class WebhookUpdate(BaseModel):
+    url: str
+
+@app.post("/api/v1/settings/webhook")
+async def update_webhook_url(data: WebhookUpdate, user: dict = Security(verify_api_key)):
+    """ Geliştiricilerin sinyal push bildirimi alacağı URL'yi kaydeder """
+    if not data.url.startswith("http"):
+        raise HTTPException(status_code=400, detail="Geçersiz URL formatı")
+    
+    async with app.state.db_pool.acquire() as conn:
+        await conn.execute("UPDATE api_users SET webhook_url = $1 WHERE email = $2", data.url, user['email'])
+    
+    # Redis Cache'e de atalım ki scanner hızlıca erişsin
+    r = app.state.redis
+    if r: await r.set(f"webhook:{user['email']}", data.url)
+    
+    return {"status": "success", "message": "Webhook URL başarıyla kaydedildi!"}
+@app.get("/dashboard")
+async def get_dashboard_page():
+    return FileResponse("dashboard.html")
 
 # ==============================================================================
 # 📰 HABER UÇ NOKTASI (NEWS ENDPOINT)
@@ -328,39 +610,264 @@ async def get_chart_history(symbol: str, interval: str = "1m"):
 
 @app.get("/api/v1/market/{symbol}")
 async def get_market_data(symbol: str, user: dict = Security(verify_api_key)):
+    symbol = symbol.upper()
+    tier = user.get("tier", "FREE")
     r = app.state.redis
+    
+    # 1. Try to get the live/latest data first
+    live_data = None
     if r:
-        cached = await r.get(f"GOD_MODE_{symbol.upper()}")
-        if cached: return {"status": "success", "data": json.loads(cached)}
-    return {"status": "error"}
+        try:
+            cached = await r.get(f"GOD_MODE_{symbol}")
+            if cached:
+                live_data = json.loads(cached)
+                # Map keys for compatibility
+                if "p" in live_data and "average_price" not in live_data:
+                    live_data["average_price"] = live_data["p"]
+                if "volume_usd" not in live_data:
+                    live_data["volume_usd"] = live_data.get("vol", 0.0)
+                if "processed_time" not in live_data:
+                    live_data["processed_time"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        except Exception as e:
+            print(f"Redis error: {e}")
+            
+    if not live_data and getattr(app.state, "db_pool", None):
+        try:
+            async with app.state.db_pool.acquire() as conn:
+                row = await conn.fetchrow(
+                    "SELECT * FROM market_data WHERE symbol = $1 ORDER BY processed_time DESC LIMIT 1",
+                    symbol
+                )
+                if row:
+                    live_data = dict(row)
+                    if isinstance(live_data.get("processed_time"), datetime):
+                        live_data["processed_time"] = live_data["processed_time"].strftime("%Y-%m-%d %H:%M:%S")
+        except Exception as e:
+            print(f"DB error: {e}")
+
+    # Fallback to hardcoded mock base prices if database and Redis are completely empty
+    if not live_data:
+        fallback_p = 96200.0 if symbol == "BTCUSDT" else (3450.0 if symbol == "ETHUSDT" else 178.0)
+        live_data = {
+            "average_price": fallback_p,
+            "volume_usd": 1500000.0,
+            "processed_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+
+    # 2. If the user is FREE, calculate delayed price and 24h stats
+    if tier == "FREE":
+        free_data = {}
+        if getattr(app.state, "db_pool", None):
+            try:
+                async with app.state.db_pool.acquire() as conn:
+                    # 1 minute delayed price
+                    delayed_row = await conn.fetchrow(
+                        "SELECT average_price, processed_time FROM market_data WHERE symbol = $1 AND processed_time <= NOW() - INTERVAL '1 minute' ORDER BY processed_time DESC LIMIT 1",
+                        symbol
+                    )
+                    if delayed_row:
+                        free_data["delayed_price"] = delayed_row["average_price"]
+                        free_data["processed_time"] = delayed_row["processed_time"].strftime("%Y-%m-%d %H:%M:%S")
+                    else:
+                        free_data["delayed_price"] = live_data["average_price"] * 0.998
+                        free_data["processed_time"] = live_data["processed_time"]
+
+                    # 24h stats (average, max, min)
+                    stats_row = await conn.fetchrow(
+                        "SELECT AVG(average_price) as avg_p, MAX(average_price) as max_p, MIN(average_price) as min_p FROM market_data WHERE symbol = $1 AND processed_time >= NOW() - INTERVAL '24 hours'",
+                        symbol
+                    )
+                    if stats_row and stats_row["avg_p"] is not None:
+                        free_data["avg_p"] = stats_row["avg_p"]
+                        free_data["max_p"] = stats_row["max_p"]
+                        free_data["min_p"] = stats_row["min_p"]
+                    else:
+                        p = live_data["average_price"]
+                        free_data["avg_p"] = p * 0.995
+                        free_data["max_p"] = p * 1.025
+                        free_data["min_p"] = p * 0.965
+            except Exception as e:
+                print(f"DB Free stats error: {e}")
+        
+        if "delayed_price" not in free_data:
+            p = live_data["average_price"]
+            free_data["delayed_price"] = p * 0.998
+            free_data["processed_time"] = live_data["processed_time"]
+            free_data["avg_p"] = p * 0.995
+            free_data["max_p"] = p * 1.025
+            free_data["min_p"] = p * 0.965
+            
+        return {"status": "success", "tier": tier, "data": free_data}
+
+    # 3. For VIP, PRO, PREMIUM, etc. return real-time live data
+    return {"status": "success", "tier": tier, "data": live_data}
+
+
+def calculate_trust_score(god_data: dict) -> dict:
+    """
+    Arbitraj sinyalinin güvenilirliğini 0-100 arası puanlar.
+    Kriterler: VPIN (Toksisite), Anomali (Sahte Hacim), Derinlik (Emir Defteri).
+    """
+    score = 100
+    reasons = []
+
+    vpin = god_data.get("vpin", 0)
+    anomaly_wash = god_data.get("anomaly_wash", False)
+    anomaly_spoof = god_data.get("anomaly_spoof", False)
+    buy_wall = god_data.get("buy_wall_usd", 0)
+    sell_wall = god_data.get("sell_wall_usd", 0)
+    volatility = god_data.get("volatility", 0)
+
+    # 1. VPIN (Akış Toksisitesi) Kontrolü
+    if vpin > 0.8:
+        score -= 40
+        reasons.append("Yüksek Toksik Akış (VPIN > 0.8)")
+    elif vpin > 0.6:
+        score -= 20
+        reasons.append("Orta Derece Toksisite")
+
+    # 2. Anomali Kontrolü (Wash Trading / Spoofing)
+    if anomaly_wash:
+        score -= 50
+        reasons.append("Wash Trading Saptandı")
+    if anomaly_spoof:
+        score -= 30
+        reasons.append("Spoofing (Sahte Duvar) Saptandı")
+
+    # 3. Likidite Derinliği Kontrolü
+    if buy_wall < 50000 or sell_wall < 50000:
+        score -= 25
+        reasons.append("Düşük Likidite Derinliği")
+    
+    # 4. Volatilite Kontrolü
+    if volatility > 0.05: # %5 üstü anlık volatilite risklidir
+        score -= 15
+        reasons.append("Aşırı Volatilite")
+
+    score = max(0, score)
+    
+    status = "GÜVENLİ" if score >= 80 else ("RİSKLİ" if score >= 50 else "TEHLİKELİ")
+    return {"score": score, "status": status, "warnings": reasons}
+
+@app.get("/api/v1/arbitrage")
+async def get_all_arbitrage(user: dict = Security(verify_api_key)):
+    """ Tüm aktif arbitraj fırsatlarını listeler (Scanner verisi) """
+    r = app.state.redis
+    if not r: return {"status": "error", "message": "Redis yok"}
+    
+    keys = await r.keys("ARB_STATE_*")
+    results = []
+    for key in keys:
+        raw = await r.get(key)
+        if raw: results.append(json.loads(raw))
+    
+    results.sort(key=lambda x: x.get("spread_pct", 0), reverse=True)
+    return {"status": "success", "count": len(results), "data": results}
 
 @app.get("/api/v1/arbitrage/{symbol}")
-async def get_arbitrage_opportunities(symbol: str, user: dict = Security(verify_api_key)):
-    if user['tier'] == 'FREE': raise HTTPException(status_code=403, detail="Arbitraj VIP özelliğidir.")
-    base = symbol.replace("USDT", "")
-    prices = {}
-    async def fetch_price(session, exchange, url, extract_func):
-        try:
-            async with session.get(url, timeout=2) as response:
-                if response.status == 200: prices[exchange] = extract_func(await response.json())
-        except: pass
-
-    async with aiohttp.ClientSession() as session:
-        tasks = [
-            fetch_price(session, "Binance", f"https://api.binance.com/api/v3/ticker/price?symbol={symbol.upper()}", lambda d: float(d['price'])),
-            fetch_price(session, "OKX", f"https://www.okx.com/api/v5/market/ticker?instId={base}-USDT", lambda d: float(d['data'][0]['last'])),
-            fetch_price(session, "Bybit", f"https://api.bybit.com/v5/market/tickers?category=spot&symbol={symbol.upper()}", lambda d: float(d['result']['list'][0]['lastPrice'])),
-            fetch_price(session, "KuCoin", f"https://api.kucoin.com/api/v1/market/orderbook/level1?symbol={base}-USDT", lambda d: float(d['data']['price'])),
-            fetch_price(session, "Gate.io", f"https://api.gateio.ws/api/v4/spot/tickers?currency_pair={base}_USDT", lambda d: float(d[0]['last'])),
-            fetch_price(session, "MEXC", f"https://api.mexc.com/api/v3/ticker/price?symbol={symbol.upper()}", lambda d: float(d['price'])),
-        ]
-        await asyncio.gather(*tasks)
+async def get_single_arbitrage(symbol: str, user: dict = Security(verify_api_key)):
+    """ Belirli bir coin için 10 borsa verisini döndürür """
+    r = app.state.redis
+    if not r: return {"status": "error"}
     
-    if len(prices) < 2: return {"status": "error"}
-    mi, ma = min(prices, key=prices.get), max(prices, key=prices.get)
-    spread_pct = ((prices[ma] - prices[mi]) / prices[mi]) * 100
-    signal = f"🚨 FIRSAT: {ma}'den SAT, {mi}'den AL" if spread_pct > 0.05 else "DENGELİ"
-    return {"status": "success", "data": {"prices": prices, "min_exchange": mi, "max_exchange": ma, "spread_usd": round(prices[ma]-prices[mi], 4), "spread_pct": round(spread_pct, 4), "signal": signal}}
+    raw = await r.get(f"ARB_STATE_{symbol.upper()}")
+    if not raw: return {"status": "error", "message": "Veri bulunamadı. Scanner çalışıyor mu?"}
+    
+    return {"status": "success", "data": json.loads(raw)}
+
+@app.get("/api/v1/arbitrage/all/safe")
+async def get_all_safe_arbitrage(min_score: int = Query(75), min_spread: float = Query(0.1), user: dict = Security(verify_api_key)):
+    """
+    Dış trading botları için global tarama. 
+    Redis'teki ARB_STATE_* anahtarlarını tarar ve filtrelenmiş sonuçları döner.
+    """
+    if user['tier'] == 'FREE': raise HTTPException(status_code=403)
+    
+    r = app.state.redis
+    if not r: return {"status": "error", "message": "Redis bağlantısı yok"}
+    
+    keys = await r.keys("ARB_STATE_*")
+    safe_opportunities = []
+    
+    for key in keys:
+        raw = await r.get(key)
+        if raw:
+            data = json.loads(raw)
+            # Filtreleme: Güven Skoru ve Spread kontrolü
+            if data.get("trust_score", 0) >= min_score and data.get("spread_pct", 0) >= min_spread:
+                safe_opportunities.append(data)
+                
+    # En karlı olanı en başa al
+    safe_opportunities.sort(key=lambda x: x.get("spread_pct", 0), reverse=True)
+    
+    return {
+        "status": "success", 
+        "count": len(safe_opportunities),
+        "data": safe_opportunities
+    }
+
+# ==============================================================================
+# 🤖 RADARAI - AGENT VALIDATION API
+# ==============================================================================
+class TradeProposal(BaseModel):
+    symbol: str
+    buy_exchange: str
+    sell_exchange: str
+    spread_pct: float
+
+@app.post("/api/v1/agent/validate")
+async def validate_trade_with_ai(proposal: TradeProposal, user: dict = Security(verify_api_key)):
+    """
+    Dış botların 'AI Onayı' alabileceği endpoint. 
+    Gemini; VPIN, Anomali ve Haberler eşliğinde kararı onaylar veya reddeder.
+    """
+    if not ai_model: raise HTTPException(status_code=503, detail="AI Kapalı")
+    
+    r = app.state.redis
+    symbol = proposal.symbol.upper()
+    
+    # 1. Market Context Topla
+    god_raw = await r.get(f"GOD_MODE_{symbol}") if r else None
+    god_data = json.loads(god_raw) if god_raw else {}
+    
+    news_raw = await r.get("LATEST_NEWS") if r else None
+    news = json.loads(news_raw) if news_raw else []
+    
+    context = {
+        "price": god_data.get("p"),
+        "vpin": god_data.get("vpin"),
+        "anomaly": "VAR" if god_data.get("anomaly_wash") or god_data.get("anomaly_spoof") else "YOK",
+        "imbalance": god_data.get("wall_imbalance"),
+        "latest_news": [n['title'] for n in news[:3]]
+    }
+
+    # 2. Gemini'ye Soru Sor
+    prompt = f"""
+    SİSTEM: RadarPro Quant AI Agent
+    GÖREV: Trade Onayı / Reddi
+    
+    PROPOSAL: {symbol} için {proposal.buy_exchange} -> {proposal.sell_exchange} arasında %{proposal.spread_pct} arbitraj makası.
+    MARKET CONTEXT: {json.dumps(context)}
+    
+    KARAR KURALLARI:
+    1. VPIN > 0.8 ise REDDET.
+    2. Anomali varsa REDDET.
+    3. Haberler aşırı negatifse REDDET.
+    
+    YANIT FORMATI (JSON):
+    {{
+        "decision": "APPROVED" | "REJECTED",
+        "confidence": 0-100,
+        "reason": "Kısa ve öz teknik açıklama",
+        "risk_level": "LOW" | "MEDIUM" | "HIGH"
+    }}
+    """
+    
+    try:
+        response = await ai_model.generate_content_async(prompt, generation_config={"response_mime_type": "application/json"})
+        return {"status": "success", "ai_decision": json.loads(response.text)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 # ==============================================================================
 # ⏱️ BACKTEST MOTORU
@@ -421,7 +928,11 @@ async def consume_kafka_and_broadcast():
         except: await asyncio.sleep(3)
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-ai_model = genai.GenerativeModel('gemini-2.5-flash') if GEMINI_API_KEY else None
+if GEMINI_API_KEY:
+    genai.configure(api_key=GEMINI_API_KEY)
+    ai_model = genai.GenerativeModel('gemini-1.5-flash')
+else:
+    ai_model = None
 class AIQuestion(BaseModel): symbol: str; question: str; frontend_context: str = ""
 
 @app.post("/api/v1/ask_ai")
@@ -434,3 +945,16 @@ async def ask_radar_ai(payload: AIQuestion, user: dict = Security(verify_api_key
         response = await ai_model.generate_content_async(f"Quant Trader olarak yanıtla. Veri: {current_state}. Soru: {payload.question}", generation_config={"temperature": 0.7})
         return {"status": "success", "ai_response": response.text.strip()}
     except Exception as e: raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/reload")
+@app.post("/api/v1/reload")
+async def trigger_model_reload():
+    """ train_model.py tarafından çağrılır, Redis Pub/Sub üzerinden model yenileme sinyali gönderir """
+    r = getattr(app.state, "redis", None)
+    if r:
+        try:
+            await r.publish("model_updates", "RELOAD_MODELS")
+            return {"status": "success", "message": "Model reload published successfully"}
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+    return {"status": "warning", "message": "Redis connection not available, reload not published"}

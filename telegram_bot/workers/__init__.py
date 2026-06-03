@@ -4,6 +4,7 @@ from .ml_worker import ml_update_worker
 from .whale_worker import whale_pubsub_worker
 from .alarm_worker import alarm_checker_worker
 from .kick_worker import kick_queue_worker
+from .ai_worker import ai_update_worker
 
 __all__ = [
     "arbitrage_pubsub_worker",
@@ -12,4 +13,5 @@ __all__ = [
     "whale_pubsub_worker",
     "alarm_checker_worker",
     "kick_queue_worker",
+    "ai_update_worker",
 ]

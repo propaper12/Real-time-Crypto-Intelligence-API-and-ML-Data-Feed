@@ -123,6 +123,7 @@ tabs = st.tabs(["👥 Kullanıcı Yönetimi (CRM)", "🛡️ Güvenlik & Ban Lis
 with tabs[0]:
     st.subheader("User Authorization & Tier Management")
     conn = get_db_connection()
+    r = get_redis_connection()
     if conn:
         cur = conn.cursor(cursor_factory=RealDictCursor)
         cur.execute("SELECT id, username, email, tier, api_key FROM api_users")
@@ -138,8 +139,15 @@ with tabs[0]:
                 target_user = st.selectbox("Kullanıcı Seç:", df['username'].tolist() if not df.empty else [])
                 new_tier = st.selectbox("Yeni Seviye:", ["FREE", "VIP"])
                 if st.button("YETKİYİ GÜNCELLE"):
+                    cur.execute("SELECT api_key FROM api_users WHERE username = %s", (target_user,))
+                    user_rec = cur.fetchone()
                     cur.execute("UPDATE api_users SET tier = %s WHERE username = %s", (new_tier, target_user))
                     conn.commit()
+                    if user_rec and r:
+                        try:
+                            r.delete(f"auth:api_key:{user_rec['api_key']}")
+                        except Exception as e:
+                            st.warning(f"Redis cache temizlenemedi: {e}")
                     st.success(f"{target_user} artık {new_tier}!")
                     time.sleep(1)
                     st.rerun()
@@ -149,8 +157,15 @@ with tabs[0]:
                 st.markdown("### 🗑️ Kullanıcıyı Sil")
                 del_user = st.selectbox("Silinecek Hesap:", df['username'].tolist() if not df.empty else [])
                 if st.button("HESABI KALICI SİL"):
+                    cur.execute("SELECT api_key FROM api_users WHERE username = %s", (del_user,))
+                    user_rec = cur.fetchone()
                     cur.execute("DELETE FROM api_users WHERE username = %s", (del_user,))
                     conn.commit()
+                    if user_rec and r:
+                        try:
+                            r.delete(f"auth:api_key:{user_rec['api_key']}")
+                        except Exception as e:
+                            st.warning(f"Redis cache temizlenemedi: {e}")
                     st.error(f"{del_user} sistemden temizlendi.")
                     time.sleep(1)
                     st.rerun()

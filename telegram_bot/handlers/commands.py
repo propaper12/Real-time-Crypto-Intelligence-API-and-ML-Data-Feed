@@ -1,8 +1,4 @@
-"""
-RadarPro TITAN v3.7 — Command Handlers
-All API calls go to ingestion_api via Redis/aiohttp.
-Presentation mode: all tier restrictions bypassed.
-"""
+
 import asyncio
 import json
 import logging
@@ -10,8 +6,9 @@ import os
 
 import aiohttp
 import redis.asyncio as aioredis
-from aiogram import Router, types
+from aiogram import Router, types, F
 from aiogram.filters import Command
+from aiogram.types import Message
 
 from config import (
     BOT_API_KEY, FASTAPI_ARBITRAGE_URL, FASTAPI_NEWS_URL,
@@ -22,6 +19,7 @@ from formatters.ai_prediction import format_ai_prediction
 from formatters.arbitrage import format_arbitrage_alert
 from formatters.news import format_news_flash
 from formatters.generic import format_system_status
+from keyboards import get_main_menu_keyboard, get_arbitrage_keyboard
 
 logger = logging.getLogger(__name__)
 router = Router()
@@ -436,25 +434,35 @@ async def cmd_arbitraj(message: types.Message):
             
             if raw:
                 r = json.loads(raw)
-                all_p  = r.get("all_prices", {})
+                all_p  = r.get("prices", {})
                 s_pct  = r.get("spread_pct") or 0.0
                 buy_ex = r.get("buy_exchange", "")
                 sell_ex = r.get("sell_exchange", "")
+                score  = r.get("trust_score", "N/A")
+                status = r.get("trust_status", "Bilinmiyor")
                 
-                text = f"⚖️ <b>{symbol} GLOBAL SPREAD</b>\n━━━━━━━━━━━━━━━━━━━━━\n"
+                # Trust Score Icon
+                s_icon = "🛡️" if (isinstance(score, int) and score >= 80) else ("⚠️" if (isinstance(score, int) and score >= 50) else "🚨")
+
+                text = (
+                    f"⚖️ <b>{symbol} 10-BORSA GLOBAL ANALİZ</b>\n"
+                    f"━━━━━━━━━━━━━━━━━━━━━\n"
+                )
+                # Tüm fiyatları sıralı listeleyelim
                 sorted_ex = sorted(all_p.items(), key=lambda x: x[1])
                 for ex, price in sorted_ex:
                     tag = "🟢" if ex == buy_ex else ("🔴" if ex == sell_ex else "⚪")
-                    text += f"{tag} <b>{ex:<8}:</b> <code>${price:,.4f}</code>\n"
+                    text += f"{tag} <b>{ex:<9}:</b> <code>${price:,.4f}</code>\n"
                 
                 text += (
                     f"━━━━━━━━━━━━━━━━━━━━━\n"
-                    f"⚡ <b>Maksimum Makas:</b> <code>%{s_pct:.2f}</code>\n"
-                    f"📥 Alış: <b>{buy_ex}</b>\n"
-                    f"📤 Satış: <b>{sell_ex}</b>\n"
-                    f"━━━━━━━━━━━━━━━━━━━━━"
+                    f"💰 <b>Spread:</b> <code>%{s_pct:.2f}</code>\n"
+                    f"{s_icon} <b>Güven Skoru:</b> <code>{score}/100</code>\n"
+                    f"🏦 <b>Rota:</b> {buy_ex} ➔ {sell_ex}\n"
+                    f"━━━━━━━━━━━━━━━━━━━━━\n"
+                    f"📡 <i>Aktif Veri Kaynağı: {len(all_p)} Borsa</i>"
                 )
-                await wait.edit_text(text, parse_mode="HTML")
+                await wait.edit_text(text, parse_mode="HTML", reply_markup=get_arbitrage_keyboard())
             else:
                 await wait.edit_text(f"❌ {symbol} için aktif veri bulunamadı.")
         except Exception as e:
@@ -568,6 +576,44 @@ async def cmd_portfoy(message: types.Message):
     await message.answer("💼 <b>Varlıklarım (MOCK)</b>\n━━━━━━━━━━━━━━━━━━━━━\n• 1.25 BTC ($84,210)\n• 14.5 ETH ($45,200)\n• 1240 USDT\n━━━━━━━━━━━━━━━━━━━━━\n📡 <i>Sunum modu: Portföy verileri güvenliğiniz için maskelenmiştir.</i>", parse_mode="HTML")
 
 
-@router.message(Command("koinler"))
-async def cmd_koinler(message: types.Message):
-    await message.answer("🔍 <b>Coin Listesi</b>", reply_markup=get_coins_keyboard("price"), parse_mode="HTML")
+from keyboards import get_main_menu_keyboard, get_arbitrage_keyboard
+
+@router.message(Command("start"))
+async def cmd_start(message: types.Message):
+    """Ayrıntılı ve Premium Karşılama"""
+    welcome_text = (
+        "🖥️ <b>RADARPRO INTELLIGENCE TERMINAL v3.0</b>\n"
+        "━━━━━━━━━━━━━━━━━━━━━\n"
+        "Sistem aktif ve tüm global borsalar taranıyor.\n\n"
+        "📊 <b>DETAYLI YETENEKLER:</b>\n"
+        "• <b>Arbitraj:</b> 25+ coin, 6 borsa paralel tarama.\n"
+        "• <b>RadarAI:</b> Gemini 1.5 Pro destekli piyasa yorumu.\n"
+        "• <b>Risk:</b> VPIN ve Anomali tabanlı Güven Skoru.\n"
+        "• <b>Whale:</b> Milyon dolarlık transfer takibi.\n"
+        "━━━━━━━━━━━━━━━━━━━━━\n"
+        "🕹️ <i>Asagidaki butonlari kullanabilir veya komutlari yazabilirsiniz:</i>"
+    )
+    await message.answer(welcome_text, reply_markup=get_main_menu_keyboard(), parse_mode="HTML")
+
+@router.message(Command("menu"))
+async def cmd_menu(message: types.Message):
+    await message.answer("🖥️ <b>RadarPro Ana Menü</b>", reply_markup=get_main_menu_keyboard(), parse_mode="HTML")
+
+@router.message(Command("radarai"))
+async def cmd_radar_ai(message: types.Message):
+    """ En son yayınlanan AI Piyasa Raporunu getirir. """
+    from config import REDIS_URL
+    import redis.asyncio as aioredis
+    
+    redis = await aioredis.from_url(REDIS_URL, encoding="utf-8", decode_responses=True)
+    report_raw = await redis.get("ai_last_report")
+    await redis.aclose()
+    
+    if not report_raw:
+        await message.answer("🧠 RadarAI şu an piyasayı analiz ediyor, lütfen az sonra tekrar deneyin...")
+        return
+        
+    data = json.loads(report_raw)
+    header = f"🤖 <b>GÜNCEL AI PİYASA ANALİZİ</b> ({data['timestamp']})\n━━━━━━━━━━━━━━━━━━━━━\n"
+    footer = f"\n━━━━━━━━━━━━━━━━━━━━━\n📡 <i>@RadarPro_VIP_Analiz</i>"
+    await message.answer(header + data['content'] + footer, parse_mode="HTML")

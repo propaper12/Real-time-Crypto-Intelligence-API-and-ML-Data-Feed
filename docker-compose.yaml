@@ -202,6 +202,98 @@ services:
         limits:
           memory: 256m
 
+  arbitrage-scanner:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: arbitrage_scanner
+    command: python arbitrage_scanner.py
+    restart: always
+    depends_on: [redis, api-gateway]
+    env_file: 
+      - .env
+    networks: [data-network]
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+  triangular-engine:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: triangular_engine
+    command: python radarpro_triangular.py
+    depends_on: [redis, api-gateway]
+    env_file: [.env]
+    networks: [data-network]
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+
+  telegram-bot:
+    build:
+      context: ./telegram_bot
+      dockerfile: Dockerfile
+    container_name: radarpro_bot
+    restart: always
+    depends_on: [redis, api-gateway]
+    env_file: 
+      - .env
+    networks: [data-network]
+    deploy:
+      resources:
+        limits:
+          memory: 384m
+
+  radar-ai-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: radar_ai_agent
+    command: python radar_ai_agent.py
+    restart: always
+    depends_on: [redis, api-gateway]
+    env_file: 
+      - .env
+    networks: [data-network]
+    deploy:
+      resources:
+        limits:
+          memory: 384m
+
+  webhook-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: webhook_gateway
+    command: python webhook_worker.py
+    restart: always
+    depends_on: [redis, api-gateway, postgres]
+    env_file: 
+      - .env
+    networks: [data-network]
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+
+  hft-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: hft_bot
+    command: python radarpro_hft_worker.py
+    restart: always
+    depends_on: [redis, api-gateway, postgres]
+    env_file: 
+      - .env
+    networks: [data-network]
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+
   mlflow:
     image: ghcr.io/mlflow/mlflow:v2.11.3
     container_name: mlflow_server

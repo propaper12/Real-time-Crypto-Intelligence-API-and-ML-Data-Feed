@@ -124,14 +124,24 @@ def predict_per_symbol(pdf: pd.DataFrame) -> pd.DataFrame:
     # 🤖 1. MAKİNE ÖĞRENMESİ (FİYAT TAHMİNİ)
     global_cache = globals().get("spark_model_cache", {})
     if "spark_model_cache" not in globals(): globals()["spark_model_cache"] = global_cache
-        
+    
+    cache_times = globals().get("spark_model_cache_times", {})
+    if "spark_model_cache_times" not in globals(): globals()["spark_model_cache_times"] = cache_times
+    
+    import time
+    now = time.time()
+    last_loaded = cache_times.get(symbol, 0)
     model = global_cache.get(symbol)
-    if model is None:
+    
+    if model is None or (now - last_loaded) > 300:
         try:
             import mlflow.sklearn
             model = mlflow.sklearn.load_model(f"models:/model_{symbol}/Production")
             global_cache[symbol] = model
-        except: model = None
+            cache_times[symbol] = now
+        except:
+            if model is None:
+                model = None
 
     pdf['lag_1'] = pdf['average_price']; pdf['lag_3'] = pdf['average_price']
     pdf['ma_5'] = pdf['average_price']; pdf['ma_10'] = pdf['average_price']
@@ -212,7 +222,9 @@ def write_to_sinks(batch_df, batch_id):
                     # 🛡️ ANOMALİ VERİSİ REDIS ÜZERİNDEN ARAYÜZE GİDİYOR
                     "anomaly_wash": row["anomaly_wash_trading"],
                     "anomaly_spoof": row["anomaly_spoofing"],
-                    "anomaly_zscore": row["anomaly_score"]
+                    "anomaly_zscore": row["anomaly_score"],
+                    "volume_usd": row["volume_usd"],
+                    "processed_time": row["processed_time"].strftime("%Y-%m-%d %H:%M:%S") if row["processed_time"] else None
                 }
                 redis_client.set(f"GOD_MODE_{row['symbol']}", json.dumps(cache_data))
                 

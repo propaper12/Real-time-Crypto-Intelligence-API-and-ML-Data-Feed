@@ -19,6 +19,7 @@ from workers import (
     whale_pubsub_worker,
     alarm_checker_worker,
     kick_queue_worker,
+    ai_update_worker,
 )
 from scheduler import setup_scheduler
 
@@ -70,16 +71,13 @@ async def on_user_join(event: types.ChatMemberUpdated):
 async def set_bot_commands(bot: Bot):
     """Sets the bot command menu visible in Telegram's UI."""
     commands = [
-        types.BotCommand(command="start",    description="🚀 RadarPro Titan başlatıcı"),
-        types.BotCommand(command="canli",    description="📡 [SEMBOL] Canlı 2dk fiyat akışı"),
-        types.BotCommand(command="fiyat",    description="💰 [SEMBOL] Anlık tam analiz"),
-        types.BotCommand(command="arbitraj", description="⚡ Top 15 arbitraj fırsatı"),
-        types.BotCommand(command="ai",       description="🧠 [SEMBOL SORU] Gemini AI analizi"),
-        types.BotCommand(command="haberler", description="📰 Son kripto haberleri"),
-        types.BotCommand(command="rehber",   description="📖 Teknik indikatör rehberi (TR)"),
-        types.BotCommand(command="manual",   description="📖 Indicator guide (EN)"),
-        types.BotCommand(command="durum",    description="⚙️ Sistem sağlık raporu"),
-        types.BotCommand(command="yardim",   description="❓ Tüm komutları listele"),
+        types.BotCommand(command="start",    description="🚀 RadarPro Titan Başlatıcı"),
+        types.BotCommand(command="menu",     description="🖥️ Intelligence Ana Menü"),
+        types.BotCommand(command="arbitraj", description="⚡ Global Arbitraj Taraması"),
+        types.BotCommand(command="radarai",  description="🧠 Güncel AI Piyasa Raporu"),
+        types.BotCommand(command="canli",    description="📡 [SEMBOL] Canlı Akış"),
+        types.BotCommand(command="durum",    description="⚙️ Sistem Sağlık Raporu"),
+        types.BotCommand(command="yardim",   description="❓ Yardım ve Komutlar"),
     ]
     await bot.set_my_commands(commands)
     logger.info("✅ Bot komut menüsü güncellendi.")
@@ -114,6 +112,7 @@ async def main():
         asyncio.create_task(whale_pubsub_worker(message_sender, VIP_CHANNEL_ID),     name="whale_worker"),
         asyncio.create_task(alarm_checker_worker(bot),                               name="alarm_worker"),
         asyncio.create_task(kick_queue_worker(bot),                                  name="kick_worker"),
+        asyncio.create_task(ai_update_worker(message_sender, VIP_CHANNEL_ID),        name="ai_worker"),
     ]
 
     # Start APScheduler

@@ -1,74 +1,57 @@
-"""
-Extra callback query handlers that don't belong to a specific command.
-Handles the main menu buttons routing.
-"""
-import logging
-from aiogram import Router, types, F
-from .commands import cmd_haberler, cmd_portfoy, cmd_durum, cmd_arbitraj, cmd_fiyat, cmd_ai
+from aiogram import Router, F, types
+from aiogram.types import CallbackQuery
+from .commands import cmd_radar_ai, cmd_menu
+import json
 
-logger = logging.getLogger(__name__)
 router = Router()
 
-@router.callback_query(F.data == "noop")
-async def noop_callback(call: types.CallbackQuery):
-    await call.answer()
+@router.callback_query(F.data == "menu_main")
+async def cb_main_menu(callback: CallbackQuery):
+    await callback.message.edit_text("🖥️ <b>RadarPro Ana Menü</b>", parse_mode="HTML")
+    from keyboards import get_main_menu_keyboard
+    await callback.message.edit_reply_markup(reply_markup=get_main_menu_keyboard())
 
-@router.callback_query(F.data.startswith("btn:"))
-async def menu_btn_callback(call: types.CallbackQuery):
-    action = call.data.split(":")[1]
-    # We mock a message to re-use the command handlers
-    mock_msg = call.message.model_copy(update={"from_user": call.from_user})
-    if action == "haberler":
-        await cmd_haberler(mock_msg)
-    elif action == "portfoy":
-        await cmd_portfoy(mock_msg)
-    elif action == "durum":
-        await cmd_durum(mock_msg)
-    elif action == "koinler":
-        from .commands import cmd_koinler
-        await cmd_koinler(mock_msg)
-    elif action == "balina":
-        from .commands import cmd_son_balina
-        await cmd_son_balina(mock_msg)
-    elif action == "settings":
-        from .admin import cmd_kontrol
-        await cmd_kontrol(mock_msg)
-    await call.answer()
+@router.callback_query(F.data == "menu_radarai")
+async def cb_radar_ai(callback: CallbackQuery):
+    # radarai komutunu manuel tetiklemiş gibi davran
+    await cmd_radar_ai(callback.message)
+    await callback.answer()
 
-@router.callback_query(F.data.startswith("admin:"))
-async def menu_admin_callback(call: types.CallbackQuery):
-    action = call.data.split(":")[1]
-    mock_msg = call.message.model_copy(update={"from_user": call.from_user})
-    from .admin import cmd_export_csv, cmd_start_radar, cmd_stop_radar
-    from .commands import cmd_durum
+@router.callback_query(F.data == "menu_arbitrage")
+async def cb_arbitrage(callback: CallbackQuery):
+    from keyboards import get_arbitrage_keyboard
+    await callback.message.edit_text("⚖️ <b>Arbitraj Merkezi</b>\n\nLütfen bir işlem seçin:", parse_mode="HTML", reply_markup=get_arbitrage_keyboard())
+
+@router.callback_query(F.data == "arb_top5")
+async def cb_arb_top5(callback: CallbackQuery):
+    from config import REDIS_URL
+    import redis.asyncio as aioredis
     
-    if action == "status":
-        await cmd_durum(mock_msg)
-    elif action == "export":
-        await cmd_export_csv(mock_msg)
-    elif action == "start":
-        await cmd_start_radar(mock_msg)
-    elif action == "stop":
-        await cmd_stop_radar(mock_msg)
-    await call.answer()
+    redis = await aioredis.from_url(REDIS_URL, encoding="utf-8", decode_responses=True)
+    keys = await redis.keys("ARB_STATE_*")
+    opportunities = []
+    for key in keys:
+        raw = await redis.get(key)
+        if raw: opportunities.append(json.loads(raw))
+    await redis.aclose()
 
-@router.callback_query(F.data.startswith("arb:"))
-async def menu_arb_callback(call: types.CallbackQuery):
-    symbol = call.data.split(":")[1]
-    mock_msg = call.message.model_copy(update={"text": f"/arbitraj {symbol}", "from_user": call.from_user})
-    await cmd_arbitraj(mock_msg)
-    await call.answer()
+    if not opportunities:
+        await callback.answer("⚠️ Şu an aktif fırsat bulunamadı.", show_alert=True)
+        return
 
-@router.callback_query(F.data.startswith("price:"))
-async def menu_price_callback(call: types.CallbackQuery):
-    symbol = call.data.split(":")[1]
-    mock_msg = call.message.model_copy(update={"text": f"/fiyat {symbol}", "from_user": call.from_user})
-    await cmd_fiyat(mock_msg)
-    await call.answer()
+    opportunities.sort(key=lambda x: x.get("spread_pct", 0), reverse=True)
+    top5 = opportunities[:5]
+    
+    text = "🔥 <b>EN KARLI 5 ARBİTRAJ FIRSATI</b>\n━━━━━━━━━━━━━━━━━━━━━\n"
+    for o in top5:
+        text += f"• <b>{o['symbol']}:</b> <code>%{o['spread_pct']:.2f}</code> ({o['buy_exchange']} ➔ {o['sell_exchange']})\n"
+    
+    text += "━━━━━━━━━━━━━━━━━━━━━\n📡 <i>Detaylı analiz için /arbitraj [coin] yazın.</i>"
+    
+    from keyboards import get_arbitrage_keyboard
+    await callback.message.edit_text(text, parse_mode="HTML", reply_markup=get_arbitrage_keyboard())
 
-@router.callback_query(F.data.startswith("ai:"))
-async def menu_ai_callback(call: types.CallbackQuery):
-    symbol = call.data.split(":")[1]
-    mock_msg = call.message.model_copy(update={"text": f"/ai {symbol} Yön ne olur?", "from_user": call.from_user})
-    await cmd_ai(mock_msg)
-    await call.answer()
+@router.callback_query(F.data == "menu_market")
+async def cb_market(callback: CallbackQuery):
+    await callback.answer("📊 Piyasa durumu hazırlanıyor...", show_alert=False)
+    # Gelecekte buraya genel piyasa verileri eklenebilir.

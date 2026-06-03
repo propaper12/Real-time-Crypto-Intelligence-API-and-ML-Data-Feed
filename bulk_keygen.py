@@ -5,12 +5,13 @@ def generate_bulk_keys(count=20):
     print(f"🚀 {count} Adet VIP Müşteri Hesabı Oluşturuluyor...\n")
     
     # Veritabanına Bağlan (Docker dışından çalıştırdığımız için localhost)
+    import os
     try:
         conn = psycopg2.connect(
-            host="localhost",
-            database="market_db",
-            user="admin_lakehouse",
-            password="SuperSecret_DB_Password_2026"
+            host=os.getenv("POSTGRES_HOST", "localhost"),
+            database=os.getenv("POSTGRES_DB", "market_db"),
+            user=os.getenv("POSTGRES_USER", "admin_lakehouse"),
+            password=os.getenv("POSTGRES_PASSWORD", "SuperSecret_DB_Password_2026")
         )
         cur = conn.cursor()
     except Exception as e:
@@ -22,11 +23,12 @@ def generate_bulk_keys(count=20):
     for i in range(1, count + 1):
         username = f"VIP_Musteri_{i}"
         api_key = f"sk_live_{secrets.token_urlsafe(32)}"
+        email = f"{username.lower()}@radarpro.io"
         
         try:
             cur.execute(
-                "INSERT INTO api_users (username, api_key, tier) VALUES (%s, %s, %s)",
-                (username, api_key, 'VIP')
+                "INSERT INTO api_users (username, email, api_key, tier) VALUES (%s, %s, %s, %s)",
+                (username, email, api_key, 'VIP')
             )
             created_users.append({"user": username, "key": api_key})
         except Exception as e:

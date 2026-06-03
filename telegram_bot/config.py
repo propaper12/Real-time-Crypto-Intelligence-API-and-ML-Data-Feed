@@ -1,7 +1,7 @@
 import os
 
 # ─── Core Bot Settings ──────────────────────────────────────────────────────
-BOT_TOKEN         = os.getenv("BOT_TOKEN", "YOUR_TELEGRAM_BOT_TOKEN")
+BOT_TOKEN         = os.getenv("BOT_TOKEN", "8701927091:AAEahMvsGF2xtUUQGb29PVzVahRYIDWInIg")
 VIP_CHANNEL_ID    = os.getenv("VIP_CHANNEL_ID", "-100123456789")
 WHALE_CHANNEL_ID  = os.getenv("WHALE_CHANNEL_ID", "-100987654321")
 REDIS_URL         = os.getenv("REDIS_URL", "redis://redis_cache:6379")

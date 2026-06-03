@@ -24,12 +24,24 @@ RUN pip install --no-cache-dir \
     bcrypt\
     yfinance\
     google-generativeai\
-    aiohttp
+    aiohttp\
+    ccxt\
+    aioredis
 
 # API Dosyaları
 COPY ingestion_api.py .
+COPY arbitrage_scanner.py .
+COPY radar_ai_agent.py .
+COPY webhook_worker.py .
+COPY terminal_dashboard.py .
+COPY radarpro_executor.py .
+COPY radarpro_hft_worker.py .
+COPY radarpro_hft.py .
+COPY dashboard.html .
 COPY fake_company.py .
 COPY inference_api.py .
 COPY api_key_manager.py .
+COPY radarpro_triangular.py .
+COPY radarpro_telegram.py .
 
 CMD ["uvicorn", "ingestion_api:app", "--host", "0.0.0.0", "--port", "8000"]
